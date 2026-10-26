@@ -32,6 +32,7 @@ struct MangaReaderApp: App {
                     .tabItem { Label("Settings", systemImage: "gearshape") }
             }
             .environment(SourceStore.shared)
+            .tint(Theme.accent)
             .task {
                 #if DEBUG
                 if ProcessInfo.processInfo.environment["UI_TESTING"] == "1" {

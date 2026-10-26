@@ -169,7 +169,12 @@ private struct ReaderContent: View {
 
                     }
 
-                    .padding().background(.ultraThinMaterial)
+                    .padding(14)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .environment(\.colorScheme, .dark)
+                    .frame(maxWidth: 600)
+                    .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+                    .padding(.horizontal, 12).padding(.bottom, 8)
 
                 }
 
