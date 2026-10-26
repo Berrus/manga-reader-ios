@@ -46,7 +46,6 @@ struct WebtoonReader: View {
 
         .onTapGesture(perform: onTap)
 
-        .ignoresSafeArea()
 
     }
 

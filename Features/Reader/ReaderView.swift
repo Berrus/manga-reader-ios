@@ -178,6 +178,9 @@ private struct ReaderContent: View {
         .navigationTitle(chapter.name)
 
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.black, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
 
         .toolbar(showControls ? .visible : .hidden, for: .navigationBar)
 
