@@ -251,6 +251,7 @@ private struct ReaderContent: View {
 
         }
 
+        .preferredColorScheme(.dark)
         .statusBarHidden(!showControls)
 
     }
