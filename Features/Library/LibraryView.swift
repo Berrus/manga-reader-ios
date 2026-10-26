@@ -45,6 +45,7 @@ struct LibraryView: View {
                             ForEach(filtered) { manga in
 
                                 NavigationLink(value: manga) { MangaCell(manga: manga) }
+                                    .accessibilityIdentifier("manga-" + manga.title)
 
                                     .buttonStyle(.plain)
 
@@ -90,7 +91,9 @@ struct LibraryView: View {
 
             }
 
-            .alert("Import failed", isPresented: .constant(errorMessage != nil)) {
+            .alert("Import failed", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } })) {
 
                 Button("OK") { errorMessage = nil }
 
