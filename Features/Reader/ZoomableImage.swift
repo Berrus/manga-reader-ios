@@ -65,6 +65,9 @@ struct ZoomableImage: UIViewRepresentable {
         scroll.delegate = context.coordinator
 
         scroll.imageView.image = image
+        scroll.imageView.isAccessibilityElement = true
+        scroll.imageView.accessibilityLabel = "Comic page"
+        scroll.imageView.accessibilityIdentifier = "readerImage"
 
         context.coordinator.scrollView = scroll
 

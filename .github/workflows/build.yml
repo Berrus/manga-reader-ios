@@ -1,19 +1,71 @@
-name: Build
+name: Build and Test
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  build:
+  test:
     runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Choose an available iPhone simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); phones=[v["udid"] for k,values in d["devices"].items() if "iOS" in k for v in values if v["isAvailable"] and v["name"].startswith("iPhone")]; assert phones, "No iPhone simulator installed"; print(phones[0])')
+          echo "SIMULATOR_ID=$DEVICE_ID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --batteryState charged --batteryLevel 100
+      - name: Run unit and simulator UI tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project MangaReader.xcodeproj -scheme MangaReader \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath build \
+            -resultBundlePath TestResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO | tee test.log
+      - name: Export real simulator screenshots
+        if: always()
+        run: |
+          mkdir -p artifacts/screenshots
+          if [ -d TestResults.xcresult ]; then
+            xcrun xcresulttool export attachments --path TestResults.xcresult --output-path artifacts/screenshots
+            xcrun xcresulttool get test-results summary --path TestResults.xcresult > artifacts/test-summary.json
+          fi
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-screenshots
+          path: artifacts/screenshots
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            TestResults.xcresult
+            artifacts/test-summary.json
+            test.log
+          retention-days: 14
+  catalyst:
+    runs-on: macos-15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - run: brew install xcodegen
       - run: xcodegen generate
-      - run: |
-          xcodebuild build \
-            -project MangaReader.xcodeproj -scheme MangaReader \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO
       - name: Build for Mac Catalyst
         run: |
           xcodebuild build \

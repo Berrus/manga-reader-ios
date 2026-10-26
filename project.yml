@@ -50,3 +50,34 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.MangaReader
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
+  MangaReaderTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: MangaReader
+      - package: ZIPFoundation
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.9"
+  MangaReaderUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: MangaReader
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.9"
+schemes:
+  MangaReader:
+    build:
+      targets:
+        MangaReader: all
+    test:
+      targets:
+        - MangaReaderTests
+        - MangaReaderUITests
+      gatherCoverageData: true

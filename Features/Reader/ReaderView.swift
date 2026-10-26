@@ -78,7 +78,7 @@ private struct ReaderContent: View {
 
         let start = finished ? 0 : chapter.lastPage
 
-        _current = State(initialValue: min(start, max(chapter.pageCount - 1, 0)))
+        _current = State(initialValue: max(0, min(start, max(chapter.pageCount - 1, 0))))
 
     }
 
@@ -135,12 +135,14 @@ private struct ReaderContent: View {
                                 Image(systemName: "chevron.left.to.line")
 
                             }.disabled(onPrevious == nil)
+                            .accessibilityLabel("Previous chapter")
 
                             Spacer()
 
                             Text("\(current + 1) / \(vm.pageCount)")
 
                                 .font(.caption.monospacedDigit())
+                                .accessibilityIdentifier("readerPageCount")
 
                             Spacer()
 
@@ -149,6 +151,7 @@ private struct ReaderContent: View {
                                 Image(systemName: "chevron.right.to.line")
 
                             }.disabled(onNext == nil)
+                            .accessibilityLabel("Next chapter")
 
                         }
 
@@ -160,6 +163,8 @@ private struct ReaderContent: View {
 
                                in: 0...Double(max(vm.pageCount - 1, 1)), step: 1)
 
+                            .disabled(pageCountIsOne)
+                            .accessibilityLabel("Page")
                             .environment(\.layoutDirection, isRTL ? .rightToLeft : .leftToRight)
 
                     }
@@ -175,6 +180,9 @@ private struct ReaderContent: View {
         .navigationTitle(chapter.name)
 
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.black, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
 
         .toolbar(showControls ? .visible : .hidden, for: .navigationBar)
 
@@ -213,6 +221,7 @@ private struct ReaderContent: View {
                     }
 
                 } label: { Image(systemName: "slider.horizontal.3") }
+                .accessibilityLabel("Reader settings")
 
             }
 
@@ -244,6 +253,7 @@ private struct ReaderContent: View {
 
         }
 
+        .preferredColorScheme(.dark)
         .statusBarHidden(!showControls)
         .background { keyboardShortcuts }
         .background {
@@ -323,8 +333,6 @@ private struct PagedReader: View {
 
         .tabViewStyle(.page(indexDisplayMode: .never))
 
-        .ignoresSafeArea()
-
     }
 
 }
@@ -338,6 +346,7 @@ private struct PageView: View {
     let onTap: () -> Void
 
     @State private var image: UIImage?
+    @State private var retryID = UUID()
 
     var body: some View {
 
@@ -346,7 +355,13 @@ private struct PageView: View {
             if let image {
 
                 ZoomableImage(image: image, onSingleTap: onTap)
+                    .accessibilityIdentifier("readerImage")
 
+            } else if vm.failedPages.contains(page) {
+                VStack(spacing: 12) {
+                    Text("This page could not be loaded.").foregroundStyle(.white)
+                    Button("Retry") { retryID = UUID() }.buttonStyle(.borderedProminent)
+                }
             } else {
 
                 ProgressView().tint(.white)
@@ -361,7 +376,7 @@ private struct PageView: View {
 
         }
 
-        .task(id: page) { image = await vm.image(at: page, fit: .screen) }
+        .task(id: "\(page)-\(retryID)") { image = await vm.image(at: page, fit: .screen) }
 
     }
 

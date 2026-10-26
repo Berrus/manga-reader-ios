@@ -64,7 +64,7 @@ final class Manga {
 
     var unreadCount: Int { chapters.filter { !$0.isRead }.count }
 
-    /// First unread chapter, or the first chapter if everything is read.
+    /// Resume a partly read chapter before starting an unread one.
 
     var resumeChapter: Chapter? {
 

@@ -1,32 +1,49 @@
 # Manga Reader iOS
 
-Native SwiftUI manga reader targeting iOS 17+. Initial source extracted from Handoff.md; it has not been compiled or tested in Xcode.
+A native SwiftUI CBZ reader for iPhone and iPad, targeting iOS 17+. The initial source has passed a macOS CI simulator build. This update adds unit tests, simulator UI smoke tests, and actual screenshot artifacts. Check the latest Actions run for their current outcome; a successful build alone does not establish runtime quality.
 
 ## Open in Xcode
 
-Quickest: on a Mac run `brew install xcodegen && xcodegen generate && open MangaReader.xcodeproj` (uses `project.yml`; CI in `.github/workflows/build.yml` does the same). Set your team and bundle ID, then build. Manual setup:
+On a Mac with Xcode installed:
 
-1. On a Mac, create a new iOS App named MangaReader using SwiftUI, Swift, and SwiftData; set deployment target to iOS 17.
-2. Remove the generated app entry point and sample model/view files.
-3. Add App, Domain, Data, and Features to the app target.
-4. Add https://github.com/weichsel/ZIPFoundation via Swift Package Manager and link ZIPFoundation to the app target.
-5. Select your development team and a unique bundle identifier, then build and address compiler diagnostics.
+```sh
+brew install xcodegen
+xcodegen generate
+open MangaReader.xcodeproj
+```
 
 ## Platforms
 
 iPhone, iPad (all orientations, multitasking), and Mac via Mac Catalyst (sandboxed, user-selected file access, network client). Arrow keys/space turn pages with a hardware keyboard. Pick the "My Mac (Mac Catalyst)" destination in Xcode.
 
-## Current source
+Choose your development team and replace the placeholder bundle ID before installing on your own device. The generated project and Info.plist are intentionally ignored; project.yml is their source of truth.
 
-Local CBZ import, library and chapters, paged LTR/RTL reading, zoom, vertical webtoon reading, and reading progress. EPUB and server integrations remain planned. No Xcode project or successful build is included yet.
+## Automated verification
 
-Known issues include webtoon memory use and approximate jumps, zoom gesture conflicts, first-unread resume behavior, and completion being marked upon opening the last page. Source code is preserved from the handoff with Markdown escapes removed; no functional fixes are claimed.
+The Build and Test workflow selects an installed iPhone simulator, runs MangaReaderTests and MangaReaderUITests, and uploads simulator-screenshots and test-results artifacts. It runs for main pushes and pull requests and can also be started manually in Actions.
 
-## Constraints
+Unit coverage includes chapter sorting and resume selection, progress bounds and completion, CBZ ordering and filtering, invalid archives, real file import and append, failed import cleanup, image decoding, and cache separation between paged/webtoon modes.
 
-No bundled scraper lists or adult-content integrations. Optional, off-by-default custom sources run sandboxed JavaScript (JavaScriptCore) added by the user; see docs/SOURCES.md, including the App Store risk. Planned integrations: user-owned Komga/Kavita/OPDS servers and the official MangaDex API. Review current service terms and App Store requirements before release.
+UI smoke tests import original generated sample CBZs into a temporary in-memory library, open the paged and webtoon readers, exercise the page slider, and capture library/reader/empty-state screenshots. Sample seeding is compiled only in DEBUG and requires the UI_TESTING launch environment variable. Normal launches never seed sample content.
 
-## Licensing
+## Current features
 
-No license has been selected for the original project code. See NOTICE for design references. ZIPFoundation has its own license.
+- Local CBZ/ZIP import with explicit CBZ file-type registration.
+- Library grid, title search, unread badges, chapter lists and manual read/unread.
+- Resume a partly read chapter before starting an unread one.
+- Paged left-to-right/right-to-left and vertical webtoon readers.
+- Pinch/double-tap zoom in paged mode, page slider and chapter navigation.
+- Per-chapter progress, bounded page indices, fit-specific memory-limited image caching.
+- Error messages and retry controls for individual pages that cannot decode.
 
+## Still needs hands-on testing
+
+iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom and zoom edge chaining are not implemented.
+
+EPUB, server integrations, downloads, categories, trackers, CloudKit and declarative sources remain future work. This is a local-reader MVP, not the complete handoff roadmap.
+
+## Content and licensing
+
+No bundled scraper lists or adult-content integrations. Optional, off-by-default custom sources run sandboxed JavaScript (JavaScriptCore) added by the user; see docs/SOURCES.md, including the App Store risk. Planned sources are user-owned Komga/Kavita/OPDS servers and official MangaDex APIs, subject to current terms and review requirements.
+
+No license has been selected for the original project code. See NOTICE for design references. ZIPFoundation retains its own license. The generated UI-test sample artwork is original and contains no third-party manga.
