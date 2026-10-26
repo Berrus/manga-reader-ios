@@ -51,6 +51,14 @@ What your Apple account allows:
 
 Common problems: "No profiles / signing for team" means the team or bundle ID is not set (or the ID is taken: change it); "Developer Mode required" means step 2 was skipped; a stale SwiftData store after a model change is fixed by deleting the app from the device or simulator and running again.
 
+## AniList tracking (optional)
+
+1. Sign in at <https://anilist.co/settings/developer> and create a client. Set the **Redirect URL** to `folioreader://anilist`.
+2. Copy the client ID into `project.yml` (`ANILIST_CLIENT_ID`), then run `xcodegen generate`.
+3. In the app: Settings > Tracking > Connect AniList. Open a series and tap **Link to AniList**.
+
+Progress is synced when you finish a chapter and at launch. The higher chapter number wins and sync never marks local chapters unread. AniList stores whole chapters only, so 12.5 is sent as 12. Chapter numbers come from file names, so check them if a sync looks off. The token is kept in the Keychain; no client secret is used.
+
 ## Run on a Mac
 
 The Mac version is built with Mac Catalyst. Choose the **My Mac (Mac Catalyst)** destination and Run. It needs a signing team (the app is sandboxed with user-selected file access and network client entitlements). Arrow keys, space and up/down turn pages.
@@ -73,6 +81,10 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Library with cover cards, a Continue reading shelf, title search, sorting (recent, title, unread), an unread filter, progress bars, chapter lists and manual read/unread.
 - Series page with a cover header, progress and chapter status indicators.
 - Four app icons (Indigo default, Ink, Coral, Light) chosen in Settings on iPhone and iPad; sources are in `design/`.
+- Categories (library chips, long-press to move), History tab, reader settings (background, edge-tap page turning, keep screen on).
+- Browse: MangaDex via its official API (safe/suggestive content only), your own Komga servers (Settings > Library > Servers, passwords in the Keychain), and optional custom sources.
+- Offline downloads: add a series from Browse to the library, then download chapters (swipe a chapter, or the download menu on the series page). Settings > Library > Downloads sets automatic downloads: series you're reading, selected series, or recently updated; how many chapters to keep ahead; Wi-Fi only; delete after reading. Updates are checked when you open the app (at most every 4 hours), with a best-effort iOS background refresh.
+- Backup and restore of categories, progress and tracker links (Settings > Backup).
 - Optional, off-by-default custom sources (Settings tab) with a Browse tab; see docs/SOURCES.md.
 - Resume a partly read chapter before starting an unread one.
 - Paged left-to-right/right-to-left and vertical webtoon readers.
@@ -84,10 +96,19 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 
 iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom and zoom edge chaining are not implemented.
 
-EPUB, server integrations, downloads, categories, trackers, CloudKit and declarative sources remain future work. This is a local-reader MVP, not the complete handoff roadmap.
+Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, true background downloads (URLSession background sessions), iCloud/CloudKit sync, widget and Shortcuts, MyAnimeList/Kitsu trackers, localization catalogs, and the monthly source-update pipeline. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
 
 ## Content and licensing
 
-No bundled scraper lists or adult-content integrations. Optional, off-by-default custom sources run sandboxed JavaScript (JavaScriptCore) added by the user; see docs/SOURCES.md, including the App Store risk. Planned sources are user-owned Komga/Kavita/OPDS servers and official MangaDex APIs, subject to current terms and review requirements.
+No bundled scraper lists or adult-content integrations. Optional custom sources use declarative JSON endpoint definitions. Downloaded programs are not executed; see docs/SOURCES.md. Planned sources are user-owned Komga/Kavita/OPDS servers and official MangaDex APIs, subject to current terms and review requirements.
 
 No license has been selected for the original project code. See NOTICE for design references. ZIPFoundation retains its own license. The generated UI-test sample artwork is original and contains no third-party manga.
+
+## Reliability and safety checks
+
+The CI matrix runs the full unit/UI suite on iPhone and iPad simulators and builds Mac Catalyst.
+Source requests and image redirects share a host policy and streaming byte cap; CBZ page extraction and decoded bitmap sizes are bounded.
+Backups match stable identities first, with explicit reporting when duplicate titles make a fallback ambiguous.
+The download queue is persisted, reattached to saved chapter records after relaunch, paused when connectivity policy changes, and acknowledged before chapter deletion.
+Resizing the reader invalidates its decoded images. Next/Previous chapter navigation streams chapters that are not downloaded.
+Check the current Actions results rather than relying on earlier screenshot runs.

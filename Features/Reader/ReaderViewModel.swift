@@ -5,19 +5,20 @@ enum ImageFit: String { case screen, width }
 @MainActor @Observable
 final class ReaderViewModel {
     let chapter: Chapter
-    private var archive: CBZArchive?
+    private var archive: (any PageProvider)?
     @ObservationIgnored private let cache = NSCache<NSString, UIImage>()
     @ObservationIgnored private var inFlight: [String: Task<UIImage?, Never>] = [:]
     @ObservationIgnored private var generation = 0
     var loadError: String?
 
     /// Set by the reader view from its actual size and display scale.
-    @ObservationIgnored var viewport = CGSize(width: 820, height: 1180)
-    @ObservationIgnored var displayScale: CGFloat = 2
+    @ObservationIgnored private(set) var viewport = CGSize(width: 820, height: 1180)
+    @ObservationIgnored private(set) var displayScale: CGFloat = 2
 
     /// Webtoon pages stop growing past this width so iPad/Mac don't blow strips up edge to edge.
     nonisolated static let webtoonMaxWidth: CGFloat = 900
 
+    var imageRevision = 0
     var failedPages: Set<Int> = []
     var pageCount: Int { chapter.pageCount }
 
@@ -29,7 +30,14 @@ final class ReaderViewModel {
 
     func open() {
         guard archive == nil, loadError == nil else { return }
-        do { archive = try CBZArchive(url: chapter.fileURL) }
+        do {
+            if chapter.isRemote {
+                guard chapter.isDownloaded else { throw CBZError.unreadable }
+                archive = try DirectoryPages(directory: chapter.downloadDirectory)
+            } else {
+                archive = try CBZArchive(url: chapter.fileURL)
+            }
+        }
         catch { loadError = "Couldn't open this file." }
     }
 
@@ -37,7 +45,11 @@ final class ReaderViewModel {
         guard (0..<pageCount).contains(index) else { return nil }
         let key = "\(fit.rawValue):\(index)"
         if let cached = cache.object(forKey: key as NSString) { return cached }
-        if let task = inFlight[key] { return await task.value }
+        if let task = inFlight[key] {
+            let revision = generation
+            let result = await task.value
+            return revision == generation && !task.isCancelled ? result : nil
+        }
         open()
         guard let archive else { return nil }
         let requestGeneration = generation
@@ -81,8 +93,17 @@ final class ReaderViewModel {
         }
     }
 
+    func configureViewport(_ size: CGSize, scale: CGFloat) {
+        guard size.width > 0, size.height > 0, scale > 0, scale.isFinite,
+              size != viewport || scale != displayScale else { return }
+        viewport = size
+        displayScale = scale
+        clearCache()
+    }
+
     func clearCache() {
         generation += 1
+        imageRevision += 1
         for task in inFlight.values { task.cancel() }
         inFlight.removeAll()
         cache.removeAllObjects()
@@ -91,9 +112,17 @@ final class ReaderViewModel {
 
     func saveProgress(_ page: Int, markRead: Bool = true) {
         guard pageCount > 0 else { return }
+        if let manga = chapter.manga {
+            manga.lastReadAt = .now
+            manga.lastReadChapterName = chapter.name
+        }
         chapter.lastPage = min(max(page, 0), pageCount - 1)
         if markRead && (0..<pageCount).contains(page) && page == pageCount - 1 {
+            let wasRead = chapter.isRead
             chapter.isRead = true
+            if !wasRead, let manga = chapter.manga {
+                Task { await TrackerSync.shared.syncAfterReading(manga) }
+            }
         }
     }
 }

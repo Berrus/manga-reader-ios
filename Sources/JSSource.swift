@@ -1,265 +1,126 @@
 import Foundation
-import JavaScriptCore
 
+struct SourceEndpoint: Codable, Hashable {
+    var url: String
+    var itemsPath: String? = nil
+    var fields: [String: String]
+}
+
+/// Name retained for decoding older installations; scripts are never evaluated.
 struct JSSourceManifest: Codable, Hashable, Identifiable {
     var id: String
     var name: String
     var version: String
-    /// Hosts the script may fetch from (exact host or parent domain). Everything else is blocked.
     var hosts: [String]
-    var script: String
+    var script: String = ""
+    var endpoints: [String: SourceEndpoint] = [:]
+
+    enum CodingKeys: String, CodingKey { case id, name, version, hosts, script, endpoints }
+    init(id: String, name: String, version: String, hosts: [String], script: String = "",
+         endpoints: [String: SourceEndpoint] = [:]) {
+        self.id = id; self.name = name; self.version = version; self.hosts = hosts
+        self.script = script; self.endpoints = endpoints
+    }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        version = try c.decode(String.self, forKey: .version)
+        hosts = try c.decode([String].self, forKey: .hosts)
+        script = try c.decodeIfPresent(String.self, forKey: .script) ?? ""
+        endpoints = try c.decodeIfPresent([String: SourceEndpoint].self, forKey: .endpoints) ?? [:]
+    }
 }
 
 enum JSSourceError: LocalizedError {
-    case invalidManifest(String)
-    case scriptFailed(String)
-    case hostBlocked(String)
-    case timedOut
-
+    case invalidManifest(String), scriptFailed(String)
     var errorDescription: String? {
         switch self {
-        case .invalidManifest(let m): return "Invalid source: \(m)"
-        case .scriptFailed(let m): return "Source error: \(m)"
-        case .hostBlocked(let u): return "Blocked request to \(u)"
-        case .timedOut: return "The source took too long to respond."
+        case .invalidManifest(let message): return "Invalid source: \(message)"
+        case .scriptFailed(let message): return "Source error: \(message)"
         }
     }
 }
 
-/// Runs a source script in JavaScriptCore. The script gets no file or system access: only
-/// `fetch` (HTTPS, declared hosts only, rate limited, size capped) and pure JavaScript.
+/// A bounded declarative JSON endpoint adapter. No JavaScript or downloaded programs.
 final class JSSource: Source, @unchecked Sendable {
     let manifest: JSSourceManifest
     var id: String { manifest.id }
     var name: String { manifest.name }
-
-    private let queue: DispatchQueue
-    private let context: JSContext
-    private let session: URLSession
-    private let redirectGuard: RedirectGuard
-    private let limiter = RateLimiter(interval: 0.4)
-    private let hosts: [String]
-
-    static let maxResponseBytes = 10_000_000
-    static let callTimeout: TimeInterval = 60
-
-    private static let shim = """
-    var console = { log: function() {} };
-    var fetch = function(url, opts) {
-      return new Promise(function(resolve, reject) {
-        __nativeFetch(String(url), JSON.stringify(opts || {}),
-          function(r) {
-            var o = JSON.parse(r);
-            o.json = function() { return JSON.parse(o.text); };
-            resolve(o);
-          },
-          function(e) { reject(new Error(e)); });
-      });
-    };
-    function __call(name, args, ok, err) {
-      Promise.resolve().then(function() {
-        if (typeof source === 'undefined' || typeof source[name] !== 'function') {
-          throw new Error('Source does not implement ' + name);
-        }
-        return source[name].apply(source, JSON.parse(args));
-      }).then(
-        function(r) { ok(JSON.stringify(r === undefined ? null : r)); },
-        function(e) { err(String((e && e.message) || e)); });
-    }
-    """
-
+    var accessPolicy: SourceAccessPolicy { SourceAccessPolicy(hosts: manifest.hosts) }
     init(manifest: JSSourceManifest) throws {
-        guard let context = JSContext() else { throw JSSourceError.invalidManifest("No JavaScript engine") }
+        try SourceStore.validate(manifest)
         self.manifest = manifest
-        self.context = context
-        self.queue = DispatchQueue(label: "source.\(manifest.id)")
-        let hosts = manifest.hosts.map { $0.lowercased() }
-        self.hosts = hosts
-        let guardObject = RedirectGuard(hosts: hosts)
-        self.redirectGuard = guardObject
-        let config = URLSessionConfiguration.ephemeral
-        config.httpCookieStorage = nil
-        self.session = URLSession(configuration: config, delegate: guardObject, delegateQueue: nil)
-
-        var loadError: String?
-        queue.sync {
-            context.exceptionHandler = { _, exception in loadError = exception?.toString() }
-
-            let fetchBlock: @convention(block) (String, String, JSValue, JSValue) -> Void = { [weak self] url, options, resolve, reject in
-                guard let self else { return }
-                self.performFetch(url, options) { result in
-                    self.queue.async {
-                        switch result {
-                        case .success(let json): resolve.call(withArguments: [json])
-                        case .failure(let error): reject.call(withArguments: [error.localizedDescription])
-                        }
-                    }
-                }
-            }
-            context.setObject(fetchBlock, forKeyedSubscript: "__nativeFetch" as NSString)
-            context.evaluateScript(Self.shim)
-            context.evaluateScript(manifest.script)
-        }
-        if let loadError { throw JSSourceError.scriptFailed(loadError) }
     }
-
-    deinit { session.invalidateAndCancel() }
-
-    // MARK: Source
 
     func search(query: String, page: Int) async throws -> [MangaSummary] {
-        try await call("search", [query, page])
+        let rows = try await records("search", ["query": query, "page": String(page)])
+        return try rows.map {
+            MangaSummary(id: try required("id", in: $0), title: try required("title", in: $0),
+                         coverURL: try imageURL($0["coverURL"]))
+        }
     }
-
     func details(for manga: MangaSummary) async throws -> MangaDetails {
-        try await call("details", [manga.id])
+        guard let row = try await records("details", ["id": manga.id]).first else {
+            throw JSSourceError.scriptFailed("No details returned.")
+        }
+        return MangaDetails(title: row["title"], coverURL: try imageURL(row["coverURL"]),
+                            author: row["author"], summary: row["summary"])
     }
-
     func chapters(for manga: MangaSummary) async throws -> [ChapterSummary] {
-        try await call("chapters", [manga.id])
+        try await records("chapters", ["id": manga.id]).map {
+            ChapterSummary(id: try required("id", in: $0), name: try required("name", in: $0),
+                           number: $0["number"].flatMap(Double.init))
+        }
     }
-
     func pages(for chapter: ChapterSummary) async throws -> [PageSource] {
-        try await call("pages", [chapter.id])
-    }
-
-    // MARK: Bridge
-
-    private func call<T: Decodable>(_ name: String, _ args: [Any]) async throws -> T {
-        let argsData = try JSONSerialization.data(withJSONObject: args)
-        let argsJSON = String(decoding: argsData, as: UTF8.self)
-
-        let json: String = try await withCheckedThrowingContinuation { continuation in
-            let once = OneShot()
-            let ok: @convention(block) (String) -> Void = { result in
-                if once.claim() { continuation.resume(returning: result) }
-            }
-            let err: @convention(block) (String) -> Void = { message in
-                if once.claim() { continuation.resume(throwing: JSSourceError.scriptFailed(message)) }
-            }
-            // Timeout runs off the JS queue so a runaway script can't block it.
-            DispatchQueue.global().asyncAfter(deadline: .now() + Self.callTimeout) {
-                if once.claim() { continuation.resume(throwing: JSSourceError.timedOut) }
-            }
-            queue.async {
-                guard let function = self.context.objectForKeyedSubscript("__call") else {
-                    if once.claim() { continuation.resume(throwing: JSSourceError.scriptFailed("Engine not ready")) }
-                    return
-                }
-                function.call(withArguments: [
-                    name, argsJSON,
-                    unsafeBitCast(ok as @convention(block) (String) -> Void, to: AnyObject.self),
-                    unsafeBitCast(err as @convention(block) (String) -> Void, to: AnyObject.self)
-                ])
-            }
-        }
-
-        do { return try JSONDecoder().decode(T.self, from: Data(json.utf8)) }
-        catch { throw JSSourceError.scriptFailed("Unexpected data from \(name): \(error.localizedDescription)") }
-    }
-
-    // MARK: Network
-
-    static func isAllowed(host: String, in hosts: [String]) -> Bool {
-        let host = host.lowercased()
-        return hosts.contains { host == $0 || host.hasSuffix("." + $0) }
-    }
-
-    private func performFetch(_ urlString: String, _ optionsJSON: String,
-                              completion: @escaping (Result<String, Error>) -> Void) {
-        guard let url = URL(string: urlString), url.scheme == "https",
-              let host = url.host, Self.isAllowed(host: host, in: hosts) else {
-            completion(.failure(JSSourceError.hostBlocked(urlString)))
-            return
-        }
-
-        var request = URLRequest(url: url, timeoutInterval: 20)
-        if let data = optionsJSON.data(using: .utf8),
-           let options = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            let method = (options["method"] as? String)?.uppercased() ?? "GET"
-            request.httpMethod = ["GET", "POST"].contains(method) ? method : "GET"
-            if let headers = options["headers"] as? [String: Any] {
-                for (key, value) in headers where key.lowercased() != "host" {
-                    request.setValue("\(value)", forHTTPHeaderField: key)
-                }
-            }
-            if request.httpMethod == "POST", let body = options["body"] as? String {
-                request.httpBody = Data(body.utf8)
-            }
-        }
-
-        let delay = limiter.reserve()
-        DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [session = self.session] in
-            session.dataTask(with: request) { data, response, error in
-                if let error { completion(.failure(error)); return }
-                guard let http = response as? HTTPURLResponse, let data else {
-                    completion(.failure(JSSourceError.scriptFailed("No response")))
-                    return
-                }
-                guard data.count <= Self.maxResponseBytes else {
-                    completion(.failure(JSSourceError.scriptFailed("Response too large")))
-                    return
-                }
-                var headers: [String: String] = [:]
-                for (key, value) in http.allHeaderFields { headers["\(key)"] = "\(value)" }
-                let object: [String: Any] = [
-                    "status": http.statusCode,
-                    "headers": headers,
-                    "text": String(decoding: data, as: UTF8.self)
-                ]
-                do {
-                    let json = try JSONSerialization.data(withJSONObject: object)
-                    completion(.success(String(decoding: json, as: UTF8.self)))
-                } catch {
-                    completion(.failure(error))
-                }
-            }.resume()
+        try await records("pages", ["id": chapter.id]).map {
+            PageSource(url: try requiredImageURL(try required("url", in: $0)), headers: nil)
         }
     }
-}
 
-// MARK: - Helpers
+    private func required(_ key: String, in row: [String: String]) throws -> String {
+        guard let value = row[key], !value.isEmpty else { throw JSSourceError.scriptFailed("Missing \(key).") }
+        return value
+    }
+    private func imageURL(_ value: String?) throws -> String? {
+        try value.map { try requiredImageURL($0) }
+    }
+    private func requiredImageURL(_ value: String) throws -> String {
+        guard let url = URL(string: value), accessPolicy.allows(url) else { throw TransportError.blocked }
+        return value
+    }
 
-private final class RedirectGuard: NSObject, URLSessionTaskDelegate {
-    let hosts: [String]
-    init(hosts: [String]) { self.hosts = hosts }
-
-    func urlSession(_ session: URLSession, task: URLSessionTask,
-                    willPerformHTTPRedirection response: HTTPURLResponse,
-                    newRequest request: URLRequest,
-                    completionHandler: @escaping (URLRequest?) -> Void) {
-        if let url = request.url, url.scheme == "https", let host = url.host,
-           JSSource.isAllowed(host: host, in: hosts) {
-            completionHandler(request)
-        } else {
-            completionHandler(nil)
+    private func records(_ operation: String, _ values: [String: String]) async throws -> [[String: String]] {
+        guard let endpoint = manifest.endpoints[operation] else { throw JSSourceError.scriptFailed("Missing \(operation) endpoint.") }
+        var address = endpoint.url
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        for (key, value) in values {
+            address = address.replacingOccurrences(of: "{\(key)}", with: value.addingPercentEncoding(withAllowedCharacters: allowed) ?? "")
+        }
+        guard let url = URL(string: address), accessPolicy.allows(url) else { throw TransportError.blocked }
+        let (data, _) = try await SourceTransport.load(URLRequest(url: url), policy: accessPolicy, maxBytes: 10_000_000)
+        let object = try JSONSerialization.jsonObject(with: data)
+        let selected = Self.value(at: endpoint.itemsPath ?? "", in: object)
+        let rows = (selected as? [Any]) ?? selected.map { [$0] } ?? []
+        guard rows.count <= 10_000 else { throw TransportError.tooLarge }
+        return rows.map { object in
+            var mapped: [String: String] = [:]
+            for (field, path) in endpoint.fields {
+                let value = Self.value(at: path, in: object)
+                if let text = value as? String { mapped[field] = text }
+                else if let number = value as? NSNumber { mapped[field] = number.stringValue }
+            }
+            return mapped
         }
     }
-}
 
-private final class RateLimiter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var next = Date.distantPast
-    private let interval: TimeInterval
-    init(interval: TimeInterval) { self.interval = interval }
-
-    /// Seconds to wait before the next request may go out.
-    func reserve() -> TimeInterval {
-        lock.lock(); defer { lock.unlock() }
-        let now = Date()
-        let slot = max(now, next)
-        next = slot.addingTimeInterval(interval)
-        return slot.timeIntervalSince(now)
-    }
-}
-
-private final class OneShot: @unchecked Sendable {
-    private let lock = NSLock()
-    private var done = false
-    func claim() -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        if done { return false }
-        done = true
-        return true
+    static func value(at path: String, in object: Any) -> Any? {
+        if path.isEmpty { return object }
+        return path.split(separator: ".").reduce(Optional(object)) { current, key in
+            if let dictionary = current as? [String: Any] { return dictionary[String(key)] }
+            if let array = current as? [Any], let index = Int(key), array.indices.contains(index) { return array[index] }
+            return nil
+        }
     }
 }

@@ -54,7 +54,8 @@ struct ZoomableImage: UIViewRepresentable {
 
     let image: UIImage
 
-    var onSingleTap: () -> Void = {}
+    /// Receives the tap position as 0...1 across the width (0.5 while zoomed in).
+    var onSingleTap: (CGFloat) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(onSingleTap: onSingleTap) }
 
@@ -109,11 +110,11 @@ struct ZoomableImage: UIViewRepresentable {
 
     final class Coordinator: NSObject, UIScrollViewDelegate {
 
-        var onSingleTap: () -> Void
+        var onSingleTap: (CGFloat) -> Void
 
         weak var scrollView: ZoomScrollView?
 
-        init(onSingleTap: @escaping () -> Void) { self.onSingleTap = onSingleTap }
+        init(onSingleTap: @escaping (CGFloat) -> Void) { self.onSingleTap = onSingleTap }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
 
@@ -121,7 +122,14 @@ struct ZoomableImage: UIViewRepresentable {
 
         }
 
-        @objc func singleTap() { onSingleTap() }
+        @objc func singleTap(_ gesture: UITapGestureRecognizer) {
+            guard let scroll = scrollView, scroll.zoomScale <= 1.01, scroll.bounds.width > 0 else {
+                onSingleTap(0.5)
+                return
+            }
+            let x = gesture.location(in: scroll).x - scroll.contentOffset.x
+            onSingleTap(min(max(x / scroll.bounds.width, 0), 1))
+        }
 
         @objc func doubleTap(_ gesture: UITapGestureRecognizer) {
 

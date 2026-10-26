@@ -31,4 +31,12 @@ protocol Source: Sendable {
     func details(for manga: MangaSummary) async throws -> MangaDetails
     func chapters(for manga: MangaSummary) async throws -> [ChapterSummary]
     func pages(for chapter: ChapterSummary) async throws -> [PageSource]
+    /// Headers needed to load cover images (e.g. server authentication).
+    var imageHeaders: [String: String] { get }
+    var accessPolicy: SourceAccessPolicy { get }
+}
+
+extension Source {
+    var imageHeaders: [String: String] { [:] }
+    var accessPolicy: SourceAccessPolicy { SourceAccessPolicy(hosts: []) }
 }

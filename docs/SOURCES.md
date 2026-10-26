@@ -1,41 +1,29 @@
-# Custom sources (advanced, off by default)
+# Declarative custom sources
 
-The app ships with **no sources and no repository addresses**. Users can turn on
-Settings > Enable custom sources and add a source definition by HTTPS address.
+Custom sources are optional and off by default. Add an HTTPS JSON definition in Settings.
+Definitions are data: no JavaScript is executed, including during validation or installation.
+Previously installed script definitions are retained on disk but disabled; replace them with this format.
 
-## Definition format (JSON)
+Each operation specifies a GET URL, an optional dot-separated JSON items path, and a field map.
+Path components may be object keys or zero-based array indices. Empty paths select the whole value.
+Placeholders are percent-encoded before substitution: search accepts {query}/{page}; the other operations accept {id}.
 
 ```json
 {
   "id": "example.source",
-  "name": "Example",
-  "version": "1.0.0",
+  "name": "My media source",
+  "version": "1",
   "hosts": ["example.com"],
-  "script": "var source = { search: async function(query, page) { ... } };"
+  "endpoints": {
+    "search": {"url": "https://example.com/api/search?q={query}&page={page}", "itemsPath": "data", "fields": {"id": "id", "title": "name", "coverURL": "cover"}},
+    "details": {"url": "https://example.com/api/books/{id}", "fields": {"title": "name", "summary": "description"}},
+    "chapters": {"url": "https://example.com/api/books/{id}/chapters", "itemsPath": "data", "fields": {"id": "id", "name": "title", "number": "number"}},
+    "pages": {"url": "https://example.com/api/chapters/{id}/pages", "itemsPath": "data", "fields": {"url": "image"}}
+  }
 }
 ```
 
-- `hosts`: the only domains the script may reach (subdomains included). HTTPS only.
-- `script`: JavaScript run in JavaScriptCore. No file or system access.
-
-## Script API
-
-Define a global `source` object. Each function may be `async` and must return plain data:
-
-| Function | Returns |
-| --- | --- |
-| `search(query, page)` | `[{ id, title, coverURL? }]` |
-| `details(mangaId)` | `{ title?, coverURL?, author?, summary? }` |
-| `chapters(mangaId)` | `[{ id, name, number? }]` |
-| `pages(chapterId)` | `[{ url, headers? }]` |
-
-Available host function: `fetch(url, { method?, headers?, body? })` resolves to
-`{ status, headers, text, json() }`. Requests are rate limited (one per 0.4 s), capped at
-10 MB, and blocked outside `hosts` (including redirects). Calls time out after 60 s.
-
-## Safety notes
-
-- Off by default; confirmation shows the declared hosts before installing.
-- Sources can be removed in Settings at any time.
-- Apple's App Review Guideline 2.5.2 restricts apps that download executable code. This
-  feature may be rejected on the App Store; consider shipping it only in TestFlight/AltStore builds.
+All endpoints, covers, page images and redirects must use the declared HTTPS domains (subdomains included).
+JSON responses are limited to 10 MB; image bodies are bounded while receiving bytes.
+Cookies and shared URL credentials are not available to custom sources.
+No sources or repository lists are bundled.

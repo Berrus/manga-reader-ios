@@ -17,6 +17,8 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 struct LibraryView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Manga.addedAt, order: .reverse) private var library: [Manga]
+    @Query(sort: \Category.order) private var categories: [Category]
+    @State private var selectedCategory: UUID?
     @AppStorage("librarySort") private var sortRaw = LibrarySort.recent.rawValue
     @AppStorage("libraryUnreadOnly") private var unreadOnly = false
     @State private var showImporter = false
@@ -30,6 +32,7 @@ struct LibraryView: View {
     private var visible: [Manga] {
         var items = library
         if !search.isEmpty { items = items.filter { $0.title.localizedCaseInsensitiveContains(search) } }
+        if let selectedCategory { items = items.filter { $0.categoryID == selectedCategory } }
         if unreadOnly { items = items.filter { $0.unreadCount > 0 } }
         switch sort {
         case .recent: break
@@ -61,6 +64,7 @@ struct LibraryView: View {
                             if search.isEmpty && !continueReading.isEmpty {
                                 shelf
                             }
+                            if !categories.isEmpty { categoryBar }
                             grid
                         }
                         .padding()
@@ -103,6 +107,30 @@ struct LibraryView: View {
         .accessibilityLabel("Sort and filter")
     }
 
+    private var categoryBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                chip("All", selected: selectedCategory == nil) { selectedCategory = nil }
+                ForEach(categories) { category in
+                    chip(category.name, selected: selectedCategory == category.id) {
+                        selectedCategory = category.id
+                    }
+                }
+            }
+        }
+    }
+
+    private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(selected ? Theme.accent : Color.secondary.opacity(0.15), in: Capsule())
+                .foregroundStyle(selected ? Color.white : Color.primary)
+        }
+        .buttonStyle(.plain)
+    }
+
     private var shelf: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Continue reading").font(.title3.bold())
@@ -138,6 +166,12 @@ struct LibraryView: View {
                             .accessibilityIdentifier("manga-" + manga.title)
                             .buttonStyle(.plain)
                             .contextMenu {
+                                Menu("Move to category", systemImage: "folder") {
+                                    Button("None") { manga.categoryID = nil }
+                                    ForEach(categories) { category in
+                                        Button(category.name) { manga.categoryID = category.id }
+                                    }
+                                }
                                 Button("Delete", systemImage: "trash", role: .destructive) {
                                     delete(manga)
                                 }
@@ -162,8 +196,16 @@ struct LibraryView: View {
     }
 
     private func delete(_ manga: Manga) {
-        LibraryImporter.deleteFiles(for: manga)
-        context.delete(manga)
+        let chapters = manga.chapters
+        let files = chapters.map { $0.isRemote ? $0.downloadDirectory : $0.fileURL }
+        Task {
+            await DownloadManager.shared.cancelAndWait(Set(chapters.map(\.id)))
+            context.delete(manga)
+            do {
+                try context.save()
+                for url in files { try? FileManager.default.removeItem(at: url) }
+            } catch { errorMessage = "Couldn't delete the series: \(error.localizedDescription)" }
+        }
     }
 }
 

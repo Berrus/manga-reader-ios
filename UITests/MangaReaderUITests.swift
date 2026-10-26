@@ -1,11 +1,12 @@
 import XCTest
 
 final class MangaReaderUITests: XCTestCase {
-    private func launch(mode: String = "paged", empty: Bool = false) -> XCUIApplication {
+    private func launch(mode: String = "paged", empty: Bool = false, remoteNext: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-AppleInterfaceStyle", "Dark"]
         app.launchEnvironment["UI_TESTING"] = "1"
+        app.launchEnvironment["UI_TEST_REMOTE_NEXT"] = remoteNext ? "1" : "0"
         app.launchEnvironment["READER_MODE"] = mode
         app.launchEnvironment["EMPTY_LIBRARY"] = empty ? "1" : "0"
         app.launch()
@@ -65,4 +66,21 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Import"].exists)
         screenshot("04-empty-library")
     }
+    func testSettingsScreenLoads() {
+        let app = launch(empty: true)
+        app.tabBars.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.switches["Enable custom sources"].exists)
+    }
+
+    func testNextUndownloadedChapterRoutesToStreaming() {
+        let app = launch(remoteNext: true)
+        openSample(app)
+        let next = app.buttons["Next chapter"]
+        XCTAssertTrue(next.isEnabled)
+        next.tap()
+        XCTAssertTrue(app.staticTexts["Source unavailable"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Couldn't open this file."].exists)
+    }
+
 }

@@ -22,7 +22,8 @@ enum LibraryImporter {
 
     @MainActor
 
-    static func importFile(at sourceURL: URL, into manga: Manga?, context: ModelContext) async throws {
+    static func importFile(at sourceURL: URL, into manga: Manga?, context: ModelContext,
+                           save: ((ModelContext) throws -> Void)? = nil) async throws {
 
         let scoped = sourceURL.startAccessingSecurityScopedResource()
 
@@ -34,6 +35,9 @@ enum LibraryImporter {
 
         try FileManager.default.copyItem(at: sourceURL, to: destination)
 
+        var insertedChapter: Chapter?
+        var insertedManga: Manga?
+        let oldCover = manga?.coverData
         do {
 
             let archive = try CBZArchive(url: destination)
@@ -65,18 +69,24 @@ enum LibraryImporter {
                 target = Manga(title: name, coverData: cover)
 
                 context.insert(target)
+                insertedManga = target
 
             }
 
             context.insert(chapter)
+            insertedChapter = chapter
 
             chapter.manga = target
 
             if target.coverData == nil { target.coverData = cover }
 
-            try context.save()
+            if let save { try save(context) } else { try context.save() }
 
         } catch {
+            if let insertedChapter { context.delete(insertedChapter) }
+            if let insertedManga { context.delete(insertedManga) }
+            else { manga?.coverData = oldCover }
+            context.processPendingChanges()
 
             try? FileManager.default.removeItem(at: destination)
 
@@ -106,7 +116,7 @@ enum LibraryImporter {
 
         for chapter in manga.chapters {
 
-            try? FileManager.default.removeItem(at: chapter.fileURL)
+            chapter.removeFiles()
 
         }
 

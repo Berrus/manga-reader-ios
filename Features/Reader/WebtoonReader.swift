@@ -95,7 +95,13 @@ private struct WebtoonPage: View {
 
         }
 
-        .task(id: "\(page)-\(retryID)") { image = await vm.image(at: page, fit: .width) }
+        .task(id: "\(page)-\(retryID)-\(vm.imageRevision)") {
+            let revision = vm.imageRevision
+            image = nil
+            let loaded = await vm.image(at: page, fit: .width)
+            if !Task.isCancelled && revision == vm.imageRevision { image = loaded }
+        }
+        .onDisappear { image = nil }
 
     }
 

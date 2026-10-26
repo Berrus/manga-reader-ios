@@ -2,9 +2,10 @@ import Foundation
 
 import ZIPFoundation
 
-enum CBZError: Error { case noImages, unreadable, pageOutOfRange }
+enum CBZError: Error { case noImages, unreadable, pageOutOfRange, pageTooLarge }
 
-actor CBZArchive {
+actor CBZArchive: PageProvider {
+    static let maxPageBytes = 30_000_000
 
     private let archive: Archive
 
@@ -48,9 +49,13 @@ actor CBZArchive {
 
         guard entries.indices.contains(index) else { throw CBZError.pageOutOfRange }
 
+        guard UInt64(entries[index].uncompressedSize) <= UInt64(Self.maxPageBytes) else { throw CBZError.pageTooLarge }
         var data = Data()
 
-        _ = try archive.extract(entries[index]) { data.append($0) }
+        _ = try archive.extract(entries[index]) { chunk in
+            guard chunk.count <= Self.maxPageBytes - data.count else { throw CBZError.pageTooLarge }
+            data.append(chunk)
+        }
 
         return data
 

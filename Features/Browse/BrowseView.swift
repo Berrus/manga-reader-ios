@@ -1,36 +1,57 @@
 import SwiftUI
+import SwiftData
 
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
+    private var servers: ServerStore { .shared }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if !store.enabled {
-                    ContentUnavailableView("Custom sources are off", systemImage: "network.slash",
-                        description: Text("This app includes no sources. Advanced users can turn on custom sources in Settings."))
-                } else if store.manifests.isEmpty {
-                    ContentUnavailableView("No sources installed", systemImage: "tray",
-                        description: Text("Add a source you trust in Settings."))
-                } else {
-                    List(store.manifests) { manifest in
-                        if let source = store.source(for: manifest) {
-                            NavigationLink {
-                                SourceSearchView(source: source)
-                            } label: {
-                                VStack(alignment: .leading) {
-                                    Text(manifest.name)
-                                    Text("v\(manifest.version)").font(.caption).foregroundStyle(.secondary)
-                                }
+            List {
+                Section {
+                    row(MangaDexSource(), subtitle: "Official API · Data from MangaDex")
+                } header: {
+                    Text("Online")
+                }
+
+                if !servers.servers.isEmpty {
+                    Section("Your servers") {
+                        ForEach(servers.servers) { server in
+                            if let source = servers.source(for: server) {
+                                row(source, subtitle: server.url)
+                            } else {
+                                Label("\(server.name): check the address in Settings", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.secondary)
                             }
-                        } else {
-                            Label("\(manifest.name) failed to load", systemImage: "exclamationmark.triangle")
-                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if store.enabled && !store.manifests.isEmpty {
+                    Section("Custom sources") {
+                        ForEach(store.manifests) { manifest in
+                            if let source = store.source(for: manifest) {
+                                row(source, subtitle: "v\(manifest.version)")
+                            } else {
+                                Label("\(manifest.name) failed to load", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
             }
             .navigationTitle("Browse")
+        }
+    }
+
+    private func row(_ source: any Source, subtitle: String) -> some View {
+        NavigationLink {
+            SourceSearchView(source: source)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(source.name)
+                Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
         }
     }
 }
@@ -49,11 +70,7 @@ struct SourceSearchView: View {
                 SourceMangaView(source: source, manga: manga)
             } label: {
                 HStack(spacing: 12) {
-                    AsyncImage(url: manga.coverURL.flatMap(URL.init(string:))) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Color.gray.opacity(0.3)
-                    }
+                    RemoteImage(url: manga.coverURL.flatMap(URL.init(string:)), headers: source.imageHeaders, policy: source.accessPolicy)
                     .frame(width: 44, height: 64)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                     Text(manga.title).lineLimit(2)
@@ -89,6 +106,16 @@ struct SourceSearchView: View {
 struct SourceMangaView: View {
     let source: any Source
     let manga: MangaSummary
+    @Environment(\.modelContext) private var context
+    @Query private var existing: [Manga]
+
+    init(source: any Source, manga: MangaSummary) {
+        self.source = source
+        self.manga = manga
+        let sourceID = source.id
+        let remoteID = manga.id
+        _existing = Query(filter: #Predicate<Manga> { $0.sourceID == sourceID && $0.remoteID == remoteID })
+    }
     @State private var details: MangaDetails?
     @State private var chapters: [ChapterSummary] = []
     @State private var isLoading = true
@@ -118,8 +145,49 @@ struct SourceMangaView: View {
         }
         .navigationTitle(manga.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if !existing.isEmpty {
+                    Label("In library", systemImage: "checkmark.circle.fill")
+                } else {
+                    Button("Add to library", systemImage: "plus") { addToLibrary() }
+                        .disabled(isLoading || chapters.isEmpty)
+                }
+            }
+        }
         .overlay { if isLoading { ProgressView() } }
         .task { await load() }
+    }
+
+        /// Saves the series and its chapter list so it can be downloaded and read offline.
+    private func addToLibrary() {
+        let entry = Manga(title: details?.title ?? manga.title, coverData: nil)
+        entry.sourceID = source.id
+        entry.remoteID = manga.id
+        context.insert(entry)
+        for item in chapters {
+            let chapter = Chapter(name: item.name,
+                                  number: item.number ?? LibraryImporter.guessNumber(from: item.name),
+                                  fileName: "", pageCount: 0)
+            chapter.remoteID = item.id
+            context.insert(chapter)
+            chapter.manga = entry
+        }
+        try? context.save()
+
+        let coverString = details?.coverURL ?? manga.coverURL
+        let headers = source.imageHeaders
+        let policy = source.accessPolicy
+        Task {
+            guard let coverString, let url = URL(string: coverString) else { return }
+            var request = URLRequest(url: url, timeoutInterval: 20)
+            for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
+            guard let (data, _) = try? await SourceTransport.load(request, policy: policy, maxBytes: 30_000_000) else { return }
+            let jpeg = await Task.detached(priority: .utility) {
+                ImageDownsampler.image(from: data, maxPixel: 500)?.jpegData(compressionQuality: 0.8)
+            }.value
+            entry.coverData = jpeg
+        }
     }
 
     private func load() async {
@@ -156,7 +224,7 @@ struct RemoteReaderView: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(pages.indices, id: \.self) { index in
-                            RemotePageView(page: pages[index], displayScale: displayScale)
+                            RemotePageView(page: pages[index], displayScale: displayScale, policy: source.accessPolicy)
                         }
                     }
                 }
@@ -177,6 +245,7 @@ struct RemoteReaderView: View {
 private struct RemotePageView: View {
     let page: PageSource
     let displayScale: CGFloat
+    let policy: SourceAccessPolicy
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -200,12 +269,12 @@ private struct RemotePageView: View {
     }
 
     private func load() async {
-        guard let url = URL(string: page.url), url.scheme == "https" else { failed = true; return }
+        guard let url = URL(string: page.url), policy.allows(url) else { failed = true; return }
         var request = URLRequest(url: url, timeoutInterval: 30)
         for (key, value) in page.headers ?? [:] { request.setValue(value, forHTTPHeaderField: key) }
         let width = ReaderViewModel.webtoonMaxWidth * displayScale
         do {
-            let (data, _) = try await URLSession.shared.data(for: request)
+            let (data, _) = try await SourceTransport.load(request, policy: policy, maxBytes: 30_000_000)
             guard data.count < 30_000_000 else { failed = true; return }
             let decoded = await Task.detached(priority: .userInitiated) {
                 ImageDownsampler.image(from: data, fittingWidth: width)
