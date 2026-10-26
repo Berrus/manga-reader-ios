@@ -72,7 +72,9 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(settings.waitForExistence(timeout: 10))
         settings.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.switches["Enable custom sources"].exists)
+        let customSources = app.switches["Enable custom sources"]
+        for _ in 0..<4 where !customSources.exists { app.swipeUp() }
+        XCTAssertTrue(customSources.exists)
     }
 
     func testNextUndownloadedChapterRoutesToStreaming() {
@@ -96,6 +98,23 @@ final class MangaReaderUITests: XCTestCase {
         screenshot("05-bulk-library-selection")
         app.buttons["librarySelection"].tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "manga-Moonlit Express").firstMatch.exists)
+    }
+
+    func testAutoscrollStopsWhenAppLeavesForeground() {
+        let app = launch(mode: "webtoon")
+        let book = app.descendants(matching: .any).matching(identifier: "manga-Moonlit Express").firstMatch
+        XCTAssertTrue(book.waitForExistence(timeout: 30))
+        book.tap()
+        app.buttons["resumeReading"].tap()
+        XCTAssertTrue(app.images["webtoonImage"].firstMatch.waitForExistence(timeout: 20))
+        let control = app.buttons["readerAutoscroll"]
+        XCTAssertTrue(control.waitForExistence(timeout: 10))
+        control.tap()
+        XCTAssertTrue(app.buttons["Pause autoscroll"].exists)
+        screenshot("06-webtoon-autoscroll")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.buttons["Start autoscroll"].waitForExistence(timeout: 10))
     }
 
 }

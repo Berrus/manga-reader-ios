@@ -66,6 +66,15 @@ private struct ReaderContent: View {
 
     @State private var showControls = true
 
+    @State private var autoScroll = false
+    @State private var coverTint = Color.black
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
+    @AppStorage("reader.preload") private var preload = 2
+    @AppStorage("reader.cacheMB") private var cacheMB = 64
+    @AppStorage("reader.autoscrollSpeed") private var scrollSpeed = 40.0
+
     @Environment(\.displayScale) private var displayScale
     @AppStorage("reader.background") private var backgroundRaw = ReaderBackground.black.rawValue
     @AppStorage("reader.tapZones") private var tapZones = true
@@ -109,7 +118,7 @@ private struct ReaderContent: View {
 
         ZStack {
 
-            background.color.ignoresSafeArea()
+            (background == .cover ? coverTint : background.color).ignoresSafeArea()
 
             if let error = vm.loadError {
 
@@ -125,7 +134,10 @@ private struct ReaderContent: View {
 
                 case .webtoon:
 
-                    WebtoonReader(vm: vm, current: $current, onTap: toggleControls)
+                    WebtoonReader(vm: vm, current: $current, onTap: {
+                        autoScroll = false
+                        toggleControls()
+                    }, autoScroll: $autoScroll, scrollSpeed: scrollSpeed)
 
                 }
 
@@ -167,6 +179,17 @@ private struct ReaderContent: View {
                         }
 
                         .foregroundStyle(.white)
+
+                        if mode == .webtoon {
+                            Button {
+                                autoScroll.toggle()
+                            } label: {
+                                Label(autoScroll ? "Pause autoscroll" : "Start autoscroll",
+                                      systemImage: autoScroll ? "pause.fill" : "play.fill")
+                            }
+                            .accessibilityIdentifier("readerAutoscroll")
+                            .disabled(reduceMotion || voiceOver)
+                        }
 
                         Slider(value: Binding(get: { Double(current) },
 
@@ -259,6 +282,7 @@ private struct ReaderContent: View {
 
         .onChange(of: mode) { _, _ in
 
+            autoScroll = false
             vm.clearCache()
 
             vm.preload(around: current, fit: fit)
@@ -267,6 +291,7 @@ private struct ReaderContent: View {
 
         .onAppear {
 
+            vm.configureMemory(preload: preload, cacheMB: cacheMB)
             vm.open()
 
             vm.saveProgress(current, markRead: pageCountIsOne)
@@ -277,7 +302,24 @@ private struct ReaderContent: View {
 
         .preferredColorScheme(.dark)
         .onAppear { UIApplication.shared.isIdleTimerDisabled = keepAwake }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onDisappear {
+            autoScroll = false
+            vm.clearCache()
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { autoScroll = false; UIApplication.shared.isIdleTimerDisabled = false }
+            else { UIApplication.shared.isIdleTimerDisabled = keepAwake }
+        }
+        .onChange(of: reduceMotion) { _, value in if value { autoScroll = false } }
+        .onChange(of: voiceOver) { _, value in if value { autoScroll = false } }
+        .onChange(of: preload) { _, _ in vm.configureMemory(preload: preload, cacheMB: cacheMB) }
+        .onChange(of: cacheMB) { _, _ in vm.configureMemory(preload: preload, cacheMB: cacheMB) }
+        .task {
+            let data = chapter.manga?.coverData
+            let tint = await Task.detached(priority: .utility) { CoverReaderTint.extract(data) }.value
+            if !Task.isCancelled { coverTint = tint.color }
+        }
         .onChange(of: keepAwake) { _, value in UIApplication.shared.isIdleTimerDisabled = value }
         .statusBarHidden(!showControls)
         .background { keyboardShortcuts }

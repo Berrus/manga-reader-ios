@@ -44,6 +44,8 @@ struct SettingsView: View {
     }
     private var librarySection: some View {
         Section("Library") {
+            NavigationLink("Appearance") { AppearanceSettingsView() }
+            NavigationLink("Reader") { ReaderPreferencesView() }
             NavigationLink("Categories") { CategoriesView() }
             NavigationLink("Servers") { ServersView() }
             NavigationLink("Downloads") { DownloadsSettingsView() }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum Theme {
-    static let accent = Color(red: 0.43, green: 0.36, blue: 0.95)
+    @MainActor static var accent: Color { AppearancePreferences.shared.palette.color }
     static let cardRadius: CGFloat = 14
     static let coverRadius: CGFloat = 10
     /// Keeps content from stretching edge to edge on iPad and Mac windows.
