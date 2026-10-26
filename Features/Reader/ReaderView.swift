@@ -84,6 +84,8 @@ private struct ReaderContent: View {
 
     private var direction: ReadingDirection { chapter.manga?.direction ?? .rightToLeft }
 
+    private var pageCountIsOne: Bool { chapter.pageCount <= 1 }
+
     private var isPaged: Bool { mode == .paged }
 
     private var isRTL: Bool { isPaged && direction == .rightToLeft }
@@ -232,7 +234,9 @@ private struct ReaderContent: View {
 
         .onAppear {
 
-            vm.saveProgress(current)
+            vm.open()
+
+            vm.saveProgress(current, markRead: pageCountIsOne)
 
             vm.preload(around: current, fit: fit)
 

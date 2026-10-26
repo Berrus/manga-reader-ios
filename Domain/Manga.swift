@@ -70,7 +70,9 @@ final class Manga {
 
         let sorted = sortedChapters
 
-        return sorted.first(where: { !$0.isRead }) ?? sorted.first
+        return sorted.first(where: { $0.inProgress })
+            ?? sorted.first(where: { !$0.isRead })
+            ?? sorted.first
 
     }
 

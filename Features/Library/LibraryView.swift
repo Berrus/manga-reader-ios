@@ -82,7 +82,7 @@ struct LibraryView: View {
 
             .fileImporter(isPresented: $showImporter,
 
-                          allowedContentTypes: [UTType(filenameExtension: "cbz") ?? .zip, .zip],
+                          allowedContentTypes: UTType.comicArchives,
 
                           allowsMultipleSelection: true) { result in
 
