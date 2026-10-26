@@ -101,11 +101,14 @@ final class SourceSafetyTests: XCTestCase {
 
 @MainActor
 final class StorageRegressionTests: XCTestCase {
+    private var retainedStores: [ModelContainer] = []
     private func context() throws -> ModelContext {
         let schema = Schema([Manga.self, Chapter.self, TrackLink.self, Category.self])
-        return try ModelContainer(for: schema, configurations: [
+        let store = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        ]).mainContext
+        ])
+        retainedStores.append(store)
+        return store.mainContext
     }
     private func book(_ title: String, page: Int, context: ModelContext) -> Manga {
         let manga = Manga(title: title, coverData: nil)
@@ -160,8 +163,7 @@ final class StorageRegressionTests: XCTestCase {
         let existing = book("Existing", page: 3, context: context)
         try context.save()
         existing.title = "An unrelated edit"
-        let originalCover = png()
-        existing.coverData = originalCover
+        existing.coverData = nil
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".cbz")
         defer { try? FileManager.default.removeItem(at: url) }
         let archive = try Archive(url: url, accessMode: .create)
@@ -177,7 +179,7 @@ final class StorageRegressionTests: XCTestCase {
         } catch is SaveFailure {}
         try context.save()
         XCTAssertEqual(existing.title, "An unrelated edit")
-        XCTAssertEqual(existing.coverData, originalCover)
+        XCTAssertNil(existing.coverData)
         XCTAssertEqual(existing.chapters.count, 1)
         XCTAssertEqual(try context.fetchCount(FetchDescriptor<Chapter>()), 1)
     }

@@ -15,11 +15,13 @@ private final class FakeTracker: Tracker, @unchecked Sendable {
 
 @MainActor
 final class TrackerSyncTests: XCTestCase {
+    private var retainedStores: [ModelContainer] = []
     private func makeManga(read: Set<Double>, numbers: [Double]) throws -> (Manga, TrackLink, ModelContext) {
         let schema = Schema([Manga.self, Chapter.self, TrackLink.self])
         let container = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         ])
+        retainedStores.append(container)
         let context = container.mainContext
         let manga = Manga(title: "Series", coverData: nil)
         context.insert(manga)

@@ -68,7 +68,9 @@ final class MangaReaderUITests: XCTestCase {
     }
     func testSettingsScreenLoads() {
         let app = launch(empty: true)
-        app.tabBars.buttons["Settings"].tap()
+        let settings = app.buttons["Settings"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 10))
+        settings.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.switches["Enable custom sources"].exists)
     }

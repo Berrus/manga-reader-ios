@@ -30,11 +30,14 @@ private actor DownloadGate {
 
 @MainActor
 final class DownloadLifecycleTests: XCTestCase {
+    private var retainedStores: [ModelContainer] = []
     private func context() throws -> ModelContext {
         let schema = Schema([Manga.self, Chapter.self, TrackLink.self, Category.self])
-        return try ModelContainer(for: schema, configurations: [
+        let store = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        ]).mainContext
+        ])
+        retainedStores.append(store)
+        return store.mainContext
     }
     private func chapter(in context: ModelContext) -> Chapter {
         let manga = Manga(title: "Book", coverData: nil)
@@ -134,6 +137,7 @@ final class DownloadLifecycleTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: url) }
         manager.enqueue([chapter])
         try await waitForStart(gate)
+        manager.cancel(chapterID: chapter.id)
         let cancelling = Task { await manager.cancelAndWait([chapter.id]) }
         await Task.yield()
         await gate.release(png())

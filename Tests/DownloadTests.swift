@@ -4,11 +4,14 @@ import SwiftData
 
 @MainActor
 final class AutoDownloadPolicyTests: XCTestCase {
+    private var retainedStores: [ModelContainer] = []
     private func makeContext() throws -> ModelContext {
         let schema = Schema([Manga.self, Chapter.self, TrackLink.self, Category.self])
-        return try ModelContainer(for: schema, configurations: [
+        let store = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        ]).mainContext
+        ])
+        retainedStores.append(store)
+        return store.mainContext
     }
 
     /// A remote series with chapters 1...count; the first `read` are read and `downloaded` are on disk.

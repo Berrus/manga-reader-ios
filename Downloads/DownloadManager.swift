@@ -67,7 +67,8 @@ final class DownloadManager {
     func enqueue(_ list: [Chapter]) {
         for chapter in list where chapter.isRemote && !chapter.isDownloaded &&
             !jobs.contains(where: { $0.chapterID == chapter.id }) {
-            do { try chapter.modelContext?.save() }
+            guard let context = chapter.modelContext else { continue }
+            do { try context.save() }
             catch { continue }
             cancelledIDs.remove(chapter.id)
             chapters[chapter.id] = chapter
@@ -170,6 +171,7 @@ final class DownloadManager {
                 remove(job.chapterID)
             } catch is CancellationError {
                 if cancelledIDs.remove(job.chapterID) != nil { remove(job.chapterID) }
+                else if chapter.modelContext == nil { remove(job.chapterID) }
                 else if let i = jobs.firstIndex(where: { $0.id == job.id }) {
                     jobs[i].isActive = false; jobs[i].progress = 0
                 }
