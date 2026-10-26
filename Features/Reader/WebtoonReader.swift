@@ -59,6 +59,7 @@ private struct WebtoonPage: View {
     let page: Int
 
     @State private var image: UIImage?
+    @State private var retryID = UUID()
 
     var body: some View {
 
@@ -71,9 +72,16 @@ private struct WebtoonPage: View {
                     .resizable()
 
                     .scaledToFit()
+                    .accessibilityLabel("Comic page")
+                    .accessibilityIdentifier("webtoonImage")
 
                     .frame(maxWidth: .infinity)
 
+            } else if vm.failedPages.contains(page) {
+                VStack(spacing: 12) {
+                    Text("This page could not be loaded.").foregroundStyle(.white)
+                    Button("Retry") { retryID = UUID() }.buttonStyle(.borderedProminent)
+                }.frame(height: 200)
             } else {
 
                 Color.black
@@ -86,7 +94,7 @@ private struct WebtoonPage: View {
 
         }
 
-        .task(id: page) { image = await vm.image(at: page, fit: .width) }
+        .task(id: retryID) { image = await vm.image(at: page, fit: .width) }
 
     }
 

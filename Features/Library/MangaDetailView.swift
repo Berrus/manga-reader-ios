@@ -47,6 +47,7 @@ struct MangaDetailView: View {
                             }
 
                             .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("resumeReading")
 
                         }
 
@@ -120,7 +121,9 @@ struct MangaDetailView: View {
 
         }
 
-        .alert("Import failed", isPresented: .constant(errorMessage != nil)) {
+        .alert("Import failed", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } })) {
 
             Button("OK") { errorMessage = nil }
 
