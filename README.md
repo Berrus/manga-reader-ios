@@ -1,8 +1,10 @@
-# Manga Reader iOS
+# Folio Reader
 
 A native SwiftUI CBZ reader for iPhone, iPad and Mac (Catalyst), targeting iOS 17+. The initial source has passed a macOS CI simulator build. This update adds unit tests, simulator UI smoke tests, and actual screenshot artifacts. Check the latest Actions run for their current outcome; a successful build alone does not establish runtime quality.
 
 ## Build and run in Xcode
+
+The app is named **Folio Reader** (home-screen name and bundle ID). The Xcode target, scheme and Swift module keep the internal name `MangaReader`, so tests and CI commands below still use that.
 
 You need a Mac. The Xcode project is generated from `project.yml` (the `.xcodeproj` and `Info.plist` are git-ignored), so always regenerate rather than editing project settings by hand.
 
@@ -27,7 +29,7 @@ Set your signing details once in `project.yml` so they survive regeneration:
 ```yaml
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yourname.MangaReader   # must be unique to you
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourname.FolioReader   # must be unique to you
         DEVELOPMENT_TEAM: ABCDE12345                          # your Team ID (developer.apple.com > Membership)
 ```
 

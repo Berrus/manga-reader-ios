@@ -17,7 +17,7 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleDisplayName: Manga Reader
+        CFBundleDisplayName: Folio Reader
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -47,7 +47,7 @@ targets:
         SUPPORTS_MACCATALYST: YES
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.MangaReader
+        PRODUCT_BUNDLE_IDENTIFIER: com.example.FolioReader
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
   MangaReaderTests:
