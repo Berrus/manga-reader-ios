@@ -94,7 +94,7 @@ private struct WebtoonPage: View {
 
         }
 
-        .task(id: retryID) { image = await vm.image(at: page, fit: .width) }
+        .task(id: "\(page)-\(retryID)") { image = await vm.image(at: page, fit: .width) }
 
     }
 

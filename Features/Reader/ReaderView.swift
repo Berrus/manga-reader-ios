@@ -341,7 +341,7 @@ private struct PageView: View {
 
         }
 
-        .task(id: retryID) { image = await vm.image(at: page, fit: .screen) }
+        .task(id: "\(page)-\(retryID)") { image = await vm.image(at: page, fit: .screen) }
 
     }
 
