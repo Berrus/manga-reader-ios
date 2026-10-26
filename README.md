@@ -4,6 +4,8 @@ Native SwiftUI manga reader targeting iOS 17+. Initial source extracted from Han
 
 ## Open in Xcode
 
+Quickest: on a Mac run `brew install xcodegen && xcodegen generate && open MangaReader.xcodeproj` (uses `project.yml`; CI in `.github/workflows/build.yml` does the same). Set your team and bundle ID, then build. Manual setup:
+
 1. On a Mac, create a new iOS App named MangaReader using SwiftUI, Swift, and SwiftData; set deployment target to iOS 17.
 2. Remove the generated app entry point and sample model/view files.
 3. Add App, Domain, Data, and Features to the app target.

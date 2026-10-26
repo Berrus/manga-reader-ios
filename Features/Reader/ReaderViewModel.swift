@@ -19,15 +19,15 @@ final class ReaderViewModel {
     var pageCount: Int { chapter.pageCount }
 
     init(chapter: Chapter) {
-
         self.chapter = chapter
-
         cache.countLimit = 10
+    }
 
+    /// Opens the archive on first use so constructing the view model stays cheap.
+    func open() {
+        guard archive == nil, loadError == nil else { return }
         do { archive = try CBZArchive(url: chapter.fileURL) }
-
         catch { loadError = "Couldn't open this file." }
-
     }
 
     func image(at index: Int, fit: ImageFit) async -> UIImage? {
@@ -36,6 +36,7 @@ final class ReaderViewModel {
 
         if let task = inFlight[index] { return await task.value }
 
+        open()
         guard let archive else { return nil }
 
         let scale = UIScreen.main.scale
@@ -88,12 +89,10 @@ final class ReaderViewModel {
 
     func clearCache() { cache.removeAllObjects() }
 
-    func saveProgress(_ page: Int) {
-
+    /// `markRead` is false on appear so merely opening the last page doesn't finish the chapter.
+    func saveProgress(_ page: Int, markRead: Bool = true) {
         chapter.lastPage = page
-
-        if page >= pageCount - 1 { chapter.isRead = true }
-
+        if markRead && page >= pageCount - 1 { chapter.isRead = true }
     }
 
 }

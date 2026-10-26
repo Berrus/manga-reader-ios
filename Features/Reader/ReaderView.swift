@@ -34,9 +34,9 @@ struct ReaderView: View {
 
             chapter: chapter,
 
-            onPrevious: previousChapter.map { target in { chapter = target } },
+            onPrevious: previousChapter.map { target -> () -> Void in { chapter = target } },
 
-            onNext: nextChapter.map { target in { chapter = target } }
+            onNext: nextChapter.map { target -> () -> Void in { chapter = target } }
 
         )
 
@@ -83,6 +83,8 @@ private struct ReaderContent: View {
     private var mode: ReaderMode { chapter.manga?.readerMode ?? .paged }
 
     private var direction: ReadingDirection { chapter.manga?.direction ?? .rightToLeft }
+
+    private var pageCountIsOne: Bool { chapter.pageCount <= 1 }
 
     private var isPaged: Bool { mode == .paged }
 
@@ -232,7 +234,9 @@ private struct ReaderContent: View {
 
         .onAppear {
 
-            vm.saveProgress(current)
+            vm.open()
+
+            vm.saveProgress(current, markRead: pageCountIsOne)
 
             vm.preload(around: current, fit: fit)
 

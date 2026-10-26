@@ -7,3 +7,5 @@ xcuserdata/
 *.dSYM
 .env
 
+*.xcodeproj
+Info.plist
