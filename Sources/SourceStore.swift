@@ -10,14 +10,20 @@ final class SourceStore {
     private static let enabledKey = "customSourcesEnabled"
     static let maxScriptBytes = 512_000
 
-    var enabled: Bool = UserDefaults.standard.bool(forKey: SourceStore.enabledKey) {
-        didSet { UserDefaults.standard.set(enabled, forKey: Self.enabledKey) }
-    }
+    /// Persist with `persistEnabled()` after changing (the Settings toggle does this).
+    var enabled = false
 
     private(set) var manifests: [JSSourceManifest] = []
     @ObservationIgnored private var cache: [String: JSSource] = [:]
 
-    init() { load() }
+    init() {
+        enabled = UserDefaults.standard.bool(forKey: Self.enabledKey)
+        load()
+    }
+
+    func persistEnabled() {
+        UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
+    }
 
     private var directory: URL {
         let dir = URL.applicationSupportDirectory.appendingPathComponent("Sources", isDirectory: true)

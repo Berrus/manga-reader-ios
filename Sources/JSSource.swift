@@ -189,7 +189,7 @@ final class JSSource: Source, @unchecked Sendable {
         }
 
         let delay = limiter.reserve()
-        DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [session] in
+        DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [session = self.session] in
             session.dataTask(with: request) { data, response, error in
                 if let error { completion(.failure(error)); return }
                 guard let http = response as? HTTPURLResponse, let data else {

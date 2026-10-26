@@ -41,6 +41,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .onChange(of: store.enabled) { _, _ in store.persistEnabled() }
             .alert("Add source", isPresented: $showAdd) {
                 TextField("https://…", text: $address)
                     .textInputAutocapitalization(.never)
