@@ -251,6 +251,7 @@ private struct ReaderContent: View {
 
         }
 
+        .preferredColorScheme(.dark)
         .statusBarHidden(!showControls)
 
     }
@@ -298,8 +299,6 @@ private struct PagedReader: View {
         }
 
         .tabViewStyle(.page(indexDisplayMode: .never))
-
-        .ignoresSafeArea()
 
     }
 
