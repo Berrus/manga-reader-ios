@@ -4,13 +4,17 @@ Folio Reader remains a native Swift / SwiftUI application with SwiftData storage
 
 This is an independent implementation of product ideas. No Komikku source, artwork, branding, extension packages or manga content is included in this change.
 
-## Implemented in this phase
+## Implemented phases
 
-- Saved source-search chips, isolated by source identifier, persisted on device, removable using their context menu. Maximum 100 searches, 200 characters each. Search results are not backed up.
+- Saved source-search chips, isolated by source identifier, persisted on device, removable using their context menu. Maximum 100 searches, 200 characters each. Search definitions currently remain on the device and are not included in metadata backups.
 - Library reading-status and offline-availability filters; last-read sorting.
 - Multiple-title selection and category assignment, with field restoration on failed saves. Selection follows the current visible results.
+- Five accent palettes, a dark cover-derived reader canvas, webtoon autoscroll, preload and memory-cache settings.
+- Opt-in saved-query feed (eight queries, three concurrent requests, twenty deduplicated results per query).
+- Grouped update history, last-check issues and update progress.
+- A separate AppStore scheme restricting providers to personal Komga servers; required-reason privacy declarations and submission notes.
 
-## Feature mapping and next phases
+## Feature mapping and later phases
 
 | Komikku capability | Folio Reader status / approach |
 | --- | --- |
@@ -19,11 +23,11 @@ This is an independent implementation of product ideas. No Komikku source, artwo
 | Categories, history, continue reading, backups | Existing; new bulk categorization and filters |
 | Two-way tracker progress | Existing AniList integration; additional services require their API terms and authentication |
 | Saved source searches | Implemented in this phase |
-| Cover colors, palette selection, panoramic covers | Next visual phase; native image analysis and SwiftUI |
-| Autoscroll, preload and cache controls | Next reader phase; cancel on backgrounding and respect accessibility |
-| Grouped updates, update errors, progress banners | Next library phase |
+| Cover colors, palette selection, panoramic covers | Accent palettes and cover-derived reader background implemented; panoramic cover display remains later |
+| Autoscroll, preload and cache controls | Implemented for local/downloaded readers; motion pauses on interaction/backgrounding, respects accessibility |
+| Grouped updates, update errors, progress banners | Grouped updates, errors and progress implemented; cover notifications remain later |
 | Merged entries and source migration | Later; stable identities, reversible mapping and preview required |
-| Feed and recommendations | Later; only documented APIs and permitted content |
+| Feed and recommendations | Saved-query feed implemented; recommendations remain later and require permitted APIs/content |
 | Private categories | Later; explicit privacy feature, never a mechanism for concealing app functionality from review |
 | iCloud synchronization | Later; entitlements, conflict handling and migration tests required |
 | Android APK extensions and extension repos | Not compatible with iOS; no downloaded executable providers |
@@ -35,8 +39,8 @@ This is an independent implementation of product ideas. No Komikku source, artwo
 
 Approval is Apple's decision. Swift does not itself confer approval.
 
-1. Ship a complete, useful local-file / personal-server reader. Check permission for every bundled third-party service and catalog. Access to an API does not prove rights to the manga it serves. The existing MangaDex integration still needs an explicit content-rights and service-terms assessment before an App Store submission.
-2. Keep executable behavior in the submitted binary. Do not import Android extensions or introduce downloadable scripts. Existing declarative JSON source configuration is data-only, but Apple may still assess its scope and the content it enables; it is not automatically approved.
+1. Ship a complete, useful local-file / personal-server reader. Check permission for every bundled third-party service and catalog. Access to an API does not prove rights to the manga it serves. The AppStore scheme excludes MangaDex and custom-source browsing. The broader development variant still needs an explicit content-rights and service-terms assessment before any App Store submission.
+2. Keep executable behavior in the submitted binary. Do not import Android extensions or introduce downloadable scripts. Declarative JSON source configuration remains data-only in the development build and is unavailable in the AppStore variant.
 3. Support user-owned or licensed imports and personal media servers. A personal server is not a substitute for having content rights.
 4. Provide a privacy policy, accurate privacy disclosures and age rating, working support links, licensed screenshots/sample comics, demo access and clear review notes describing all source configuration.
 5. Complete physical iPhone/iPad testing, VoiceOver and Dynamic Type checks, IPv6-only networking and real-world large-library testing.

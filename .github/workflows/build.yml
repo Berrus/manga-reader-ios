@@ -4,6 +4,9 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -80,3 +83,36 @@ jobs:
             -project MangaReader.xcodeproj -scheme MangaReader \
             -destination 'generic/platform=macOS,variant=Mac Catalyst' \
             CODE_SIGNING_ALLOWED=NO
+  appstore:
+    name: App Store distribution
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+      - name: Validate privacy manifest
+        run: plutil -lint Resources/PrivacyInfo.xcprivacy
+      - name: Test App Store source boundaries
+        run: |
+          DEVICE_ID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(v["udid"] for k,values in d["devices"].items() if "iOS" in k for v in values if v["isAvailable"] and v["name"].startswith("iPhone")))')
+          xcodebuild test \
+            -project MangaReader.xcodeproj -scheme FolioReader-AppStore \
+            -configuration AppStore \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 90 \
+            -maximum-test-execution-time-allowance 120 \
+            -only-testing:MangaReaderUITests/MangaReaderUITests/testAppStoreSourceBoundaries \
+            -derivedDataPath build-appstore \
+            -resultBundlePath AppStoreResults.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Verify bundled privacy manifest
+        run: test -f build-appstore/Build/Products/AppStore-iphonesimulator/MangaReader.app/PrivacyInfo.xcprivacy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: appstore-test-results
+          path: AppStoreResults.xcresult
+          retention-days: 14

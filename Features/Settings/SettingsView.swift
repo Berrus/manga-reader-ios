@@ -38,8 +38,10 @@ struct SettingsView: View {
                 Section("App icon") { AppIconPicker() }
             }
             trackingSection
-            customSourceSection
-            if store.enabled { installedSourcesSection }
+            if DistributionPolicy.allowsCustomSources {
+                customSourceSection
+                if store.enabled { installedSourcesSection }
+            }
         }
     }
     private var librarySection: some View {
@@ -48,6 +50,7 @@ struct SettingsView: View {
             NavigationLink("Reader") { ReaderPreferencesView() }
             NavigationLink("Categories") { CategoriesView() }
             NavigationLink("Servers") { ServersView() }
+            NavigationLink("Updates") { UpdatesView() }
             NavigationLink("Downloads") { DownloadsSettingsView() }
         }
     }

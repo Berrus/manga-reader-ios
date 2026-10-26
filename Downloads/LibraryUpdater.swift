@@ -17,6 +17,15 @@ final class LibraryUpdater {
         var failed = 0
     }
 
+    struct UpdateIssue: Identifiable {
+        let id = UUID()
+        let title: String
+        let message: String
+    }
+    private(set) var lastErrors: [UpdateIssue] = []
+    private(set) var completedCount = 0
+    private(set) var totalCount = 0
+    private(set) var currentTitle: String?
     private(set) var isRunning = false
     private(set) var lastSummary: Summary?
     private let log = Logger(subsystem: "FolioReader", category: "updates")
@@ -30,14 +39,20 @@ final class LibraryUpdater {
         }
         guard !isRunning, NetworkMonitor.shared.isOnline else { return nil }
         isRunning = true
-        defer { isRunning = false }
+        lastErrors = []
+        completedCount = 0
+        totalCount = 0
+        defer { isRunning = false; currentTitle = nil }
 
         var summary = Summary()
         let all = (try? context.fetch(FetchDescriptor<Manga>(predicate: #Predicate { $0.sourceID != nil }))) ?? []
+        totalCount = all.count
         var toDownload: [Chapter] = []
 
         for manga in all {
             if Task.isCancelled { break }
+            currentTitle = manga.title
+            defer { completedCount += 1 }
             summary.checked += 1
             do {
                 let new = try await refresh(manga)
@@ -48,13 +63,20 @@ final class LibraryUpdater {
                 break
             } catch {
                 summary.failed += 1
+                lastErrors.append(UpdateIssue(title: manga.title, message: error.localizedDescription))
                 log.error("Update failed for \(manga.title): \(error.localizedDescription)")
             }
         }
 
         guard !Task.isCancelled else { return summary }
         if DownloadSettings.deleteRead { deleteReadDownloads(all) }
-        try? context.save()
+        do { try context.save() }
+        catch {
+            summary.failed += 1
+            lastErrors.append(UpdateIssue(title: "Library", message: "Couldn't save chapter updates: \(error.localizedDescription)"))
+            lastSummary = summary
+            return summary
+        }
         summary.queued = toDownload.count
         DownloadManager.shared.enqueue(toDownload)
         if summary.failed == 0 { UserDefaults.standard.set(Date(), forKey: DownloadSettings.lastCheckKey) }

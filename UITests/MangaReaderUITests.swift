@@ -117,4 +117,32 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Start autoscroll"].waitForExistence(timeout: 10))
     }
 
+    func testFeedAndUpdatesEmptyStates() {
+        let app = launch(empty: true)
+        let feed = app.buttons["Feed"].firstMatch
+        XCTAssertTrue(feed.waitForExistence(timeout: 10))
+        feed.tap()
+        XCTAssertTrue(app.staticTexts["Build your feed"].waitForExistence(timeout: 10))
+        screenshot("07-feed-empty")
+        app.buttons["Settings"].firstMatch.tap()
+        app.buttons["Updates"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["No updates yet"].waitForExistence(timeout: 10))
+    }
+
+    func testAppStoreSourceBoundaries() throws {
+        #if APP_STORE
+        let app = launch(empty: true)
+        app.buttons["Browse"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Import your comics in Library, or add a personal Komga server in Settings."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Online"].exists)
+        XCTAssertFalse(app.staticTexts["MangaDex"].exists)
+        app.buttons["Settings"].firstMatch.tap()
+        XCTAssertFalse(app.switches["Enable custom sources"].exists)
+        XCTAssertTrue(app.buttons["Servers"].firstMatch.exists)
+        screenshot("08-app-store-personal-library")
+        #else
+        throw XCTSkip("Only the AppStore configuration excludes public/custom providers.")
+        #endif
+    }
+
 }

@@ -29,6 +29,7 @@ struct LibraryView: View {
     @State private var showImporter = false
     @State private var errorMessage: String?
     @State private var search = ""
+    @State private var updater = LibraryUpdater.shared
 
     private let columns = [GridItem(.adaptive(minimum: 120, maximum: 200), spacing: 18, alignment: .top)]
 
@@ -59,30 +60,7 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            Group {
-                if library.isEmpty {
-                    ContentUnavailableView {
-                        Label("Your library is empty", systemImage: "books.vertical")
-                    } description: {
-                        Text("Import CBZ files from the Files app to start reading.")
-                    } actions: {
-                        Button("Import files") { showImporter = true }
-                            .buttonStyle(.borderedProminent)
-                    }
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            if !isSelecting && !hasFilters && selectedCategory == nil && search.isEmpty && !continueReading.isEmpty {
-                                shelf
-                            }
-                            if !categories.isEmpty { categoryBar }
-                            grid
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
+            libraryContent
             .navigationTitle("Library")
             .searchable(text: $search, prompt: "Search library")
             .navigationDestination(for: Manga.self) { MangaDetailView(manga: $0) }
@@ -115,6 +93,43 @@ struct LibraryView: View {
                 Button("OK") { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
         }
+    }
+
+    private var libraryContent: some View {
+            Group {
+                if library.isEmpty {
+                    ContentUnavailableView {
+                        Label("Your library is empty", systemImage: "books.vertical")
+                    } description: {
+                        Text("Import CBZ files from the Files app to start reading.")
+                    } actions: {
+                        Button("Import files") { showImporter = true }
+                            .buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            if updater.isRunning {
+                                VStack(alignment: .leading) {
+                                    Text("Updating: \(updater.currentTitle ?? "Library")").font(.caption)
+                                    ProgressView(value: Double(updater.completedCount),
+                                                 total: Double(max(updater.totalCount, 1)))
+                                }
+                            }
+                            NavigationLink { UpdatesView() } label: {
+                                Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            if !isSelecting && !hasFilters && selectedCategory == nil && search.isEmpty && !continueReading.isEmpty {
+                                shelf
+                            }
+                            if !categories.isEmpty { categoryBar }
+                            grid
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            }
     }
 
     private var sortMenu: some View {
