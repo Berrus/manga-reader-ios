@@ -85,4 +85,17 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Couldn't open this file."].exists)
     }
 
+    func testBulkLibrarySelection() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["librarySelection"].waitForExistence(timeout: 30))
+        app.buttons["librarySelection"].tap()
+        let book = app.buttons["select-Moonlit Express"]
+        XCTAssertTrue(book.waitForExistence(timeout: 10))
+        book.tap()
+        XCTAssertEqual(app.staticTexts["librarySelectionCount"].label, "1 selected")
+        screenshot("05-bulk-library-selection")
+        app.buttons["librarySelection"].tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "manga-Moonlit Express").firstMatch.exists)
+    }
+
 }
