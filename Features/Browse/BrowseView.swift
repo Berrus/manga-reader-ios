@@ -59,47 +59,110 @@ struct BrowseView: View {
 struct SourceSearchView: View {
     let source: any Source
     @State private var query = ""
+    @State private var submittedQuery = ""
+    @State private var searchRevision = 0
+    @State private var savedSearches = SavedSearchStore.shared
     @State private var results: [MangaSummary] = []
     @State private var isLoading = false
     @State private var error: String?
     @State private var searched = false
 
     var body: some View {
-        List(results) { manga in
-            NavigationLink {
-                SourceMangaView(source: source, manga: manga)
-            } label: {
-                HStack(spacing: 12) {
-                    RemoteImage(url: manga.coverURL.flatMap(URL.init(string:)), headers: source.imageHeaders, policy: source.accessPolicy)
-                    .frame(width: 44, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    Text(manga.title).lineLimit(2)
-                }
+        List {
+            if !savedSearches.searches(for: source.id).isEmpty {
+                Section("Saved searches") { savedSearchChips }
             }
-        }
-        .overlay {
-            if isLoading {
-                ProgressView()
-            } else if let error {
-                ContentUnavailableView("Couldn't load", systemImage: "exclamationmark.triangle",
-                                       description: Text(error))
-            } else if searched && results.isEmpty {
-                ContentUnavailableView.search
+            Section {
+                ForEach(results) { manga in
+                    NavigationLink {
+                        SourceMangaView(source: source, manga: manga)
+                    } label: {
+                        HStack(spacing: 12) {
+                            RemoteImage(url: manga.coverURL.flatMap(URL.init(string:)),
+                                        headers: source.imageHeaders, policy: source.accessPolicy)
+                                .frame(width: 44, height: 64)
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                            Text(manga.title).lineLimit(2)
+                        }
+                    }
+                }
+                if isLoading {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                } else if let error {
+                    ContentUnavailableView("Couldn't load", systemImage: "exclamationmark.triangle",
+                                           description: Text(error))
+                    Button("Try again") { submit(submittedQuery) }
+                } else if searched && results.isEmpty {
+                    ContentUnavailableView.search
+                }
             }
         }
         .navigationTitle(source.name)
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query)
-        .onSubmit(of: .search) { Task { await search() } }
-        .task { if !searched { await search() } }
+        .onSubmit(of: .search) { submit(query) }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    savedSearches.save(sourceID: source.id, query: query)
+                } label: {
+                    Image(systemName: savedSearches.contains(sourceID: source.id, query: query)
+                          ? "bookmark.fill" : "bookmark")
+                }
+                .accessibilityLabel("Save search")
+                .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                          query.trimmingCharacters(in: .whitespacesAndNewlines).count > 200 ||
+                          savedSearches.isFull || savedSearches.contains(sourceID: source.id, query: query))
+            }
+        }
+        .task(id: searchRevision) { await search(submittedQuery, revision: searchRevision) }
     }
 
-    private func search() async {
+    private var savedSearchChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack {
+                ForEach(savedSearches.searches(for: source.id)) { entry in
+                    Button { submit(entry.query) } label: {
+                        Label(entry.query, systemImage: "magnifyingglass")
+                            .font(.subheadline).lineLimit(1)
+                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .background(Theme.accent.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Search for \(entry.query)")
+                    .contextMenu {
+                        Button("Remove saved search", systemImage: "trash", role: .destructive) {
+                            savedSearches.remove(entry.id)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func submit(_ text: String) {
+        query = text
+        submittedQuery = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        searchRevision += 1
+    }
+
+    private func search(_ text: String, revision: Int) async {
         isLoading = true
         error = nil
-        defer { isLoading = false; searched = true }
-        do { results = try await source.search(query: query, page: 1) }
-        catch { results = []; self.error = error.localizedDescription }
+        results = []
+        defer {
+            if revision == searchRevision { isLoading = false; searched = true }
+        }
+        do {
+            let response = try await source.search(query: text, page: 1)
+            try Task.checkCancellation()
+            guard revision == searchRevision else { return }
+            results = response
+        } catch is CancellationError { return }
+        catch {
+            guard !Task.isCancelled, revision == searchRevision else { return }
+            self.error = error.localizedDescription
+        }
     }
 }
 

@@ -3,13 +3,14 @@ import SwiftData
 import UniformTypeIdentifiers
 
 enum LibrarySort: String, CaseIterable, Identifiable {
-    case recent, title, unread
+    case recent, title, unread, lastRead
     var id: String { rawValue }
     var label: String {
         switch self {
         case .recent: return "Recently added"
         case .title: return "Title"
         case .unread: return "Unread"
+        case .lastRead: return "Last read"
         }
     }
 }
@@ -21,6 +22,10 @@ struct LibraryView: View {
     @State private var selectedCategory: UUID?
     @AppStorage("librarySort") private var sortRaw = LibrarySort.recent.rawValue
     @AppStorage("libraryUnreadOnly") private var unreadOnly = false
+    @AppStorage("libraryReadingFilter") private var readingFilterRaw = LibraryReadingFilter.all.rawValue
+    @AppStorage("libraryOfflineOnly") private var offlineOnly = false
+    @State private var isSelecting = false
+    @State private var selected: Set<UUID> = []
     @State private var showImporter = false
     @State private var errorMessage: String?
     @State private var search = ""
@@ -29,15 +34,21 @@ struct LibraryView: View {
 
     private var sort: LibrarySort { LibrarySort(rawValue: sortRaw) ?? .recent }
 
+    private var readingFilter: LibraryReadingFilter { LibraryReadingFilter(rawValue: readingFilterRaw) ?? .all }
+    private var hasFilters: Bool { unreadOnly || offlineOnly || readingFilter != .all }
+
     private var visible: [Manga] {
         var items = library
         if !search.isEmpty { items = items.filter { $0.title.localizedCaseInsensitiveContains(search) } }
         if let selectedCategory { items = items.filter { $0.categoryID == selectedCategory } }
         if unreadOnly { items = items.filter { $0.unreadCount > 0 } }
+        items = items.filter { readingFilter.includes($0) }
+        if offlineOnly { items = items.filter { $0.chapters.contains { !$0.isRemote || $0.isDownloaded } } }
         switch sort {
         case .recent: break
         case .title: items.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
         case .unread: items.sort { $0.unreadCount > $1.unreadCount }
+        case .lastRead: items.sort { ($0.lastReadAt ?? .distantPast) > ($1.lastReadAt ?? .distantPast) }
         }
         return items
     }
@@ -61,7 +72,7 @@ struct LibraryView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
-                            if search.isEmpty && !continueReading.isEmpty {
+                            if !isSelecting && !hasFilters && selectedCategory == nil && search.isEmpty && !continueReading.isEmpty {
                                 shelf
                             }
                             if !categories.isEmpty { categoryBar }
@@ -78,15 +89,27 @@ struct LibraryView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { sortMenu }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Import", systemImage: "plus") { showImporter = true }
+                    HStack {
+                        if !library.isEmpty {
+                            Button(isSelecting ? "Done" : "Select") {
+                                isSelecting.toggle()
+                                selected.removeAll()
+                            }.accessibilityIdentifier("librarySelection")
+                        }
+                        Button("Import", systemImage: "plus") { showImporter = true }
+                    }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if isSelecting { selectionBar }
+            }
+            .onChange(of: visible.map(\.id)) { _, ids in selected.formIntersection(Set(ids)) }
             .fileImporter(isPresented: $showImporter,
                           allowedContentTypes: UTType.comicArchives,
                           allowsMultipleSelection: true) { result in
                 handleImport(result)
             }
-            .alert("Import failed", isPresented: Binding(
+            .alert("Library action failed", isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } })) {
                 Button("OK") { errorMessage = nil }
@@ -99,9 +122,19 @@ struct LibraryView: View {
             Picker("Sort by", selection: $sortRaw) {
                 ForEach(LibrarySort.allCases) { Text($0.label).tag($0.rawValue) }
             }
+            Picker("Reading status", selection: $readingFilterRaw) {
+                ForEach(LibraryReadingFilter.allCases) { Text($0.label).tag($0.rawValue) }
+            }
             Toggle("Unread only", systemImage: "circle.fill", isOn: $unreadOnly)
+            Toggle("Available offline", systemImage: "arrow.down.circle", isOn: $offlineOnly)
+            if hasFilters {
+                Button("Clear filters") {
+                    unreadOnly = false; offlineOnly = false
+                    readingFilterRaw = LibraryReadingFilter.all.rawValue
+                }
+            }
         } label: {
-            Image(systemName: unreadOnly ? "line.3.horizontal.decrease.circle.fill"
+            Image(systemName: hasFilters ? "line.3.horizontal.decrease.circle.fill"
                                          : "line.3.horizontal.decrease.circle")
         }
         .accessibilityLabel("Sort and filter")
@@ -156,12 +189,29 @@ struct LibraryView: View {
     private var grid: some View {
         VStack(alignment: .leading, spacing: 10) {
             if visible.isEmpty {
-                ContentUnavailableView(unreadOnly ? "Nothing unread" : "No results",
+                ContentUnavailableView(hasFilters ? "No matching titles" : "No results",
                                        systemImage: "magnifyingglass")
                     .frame(maxWidth: .infinity)
             } else {
                 LazyVGrid(columns: columns, spacing: 22) {
                     ForEach(visible) { manga in
+                        if isSelecting {
+                            Button {
+                                if selected.contains(manga.id) { selected.remove(manga.id) }
+                                else { selected.insert(manga.id) }
+                            } label: {
+                                MangaCell(manga: manga)
+                                    .overlay(alignment: .topLeading) {
+                                        Image(systemName: selected.contains(manga.id) ? "checkmark.circle.fill" : "circle")
+                                            .font(.title2).foregroundStyle(.white, Theme.accent)
+                                            .padding(8).background(.ultraThinMaterial, in: Circle())
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(manga.title)
+                            .accessibilityValue(selected.contains(manga.id) ? "Selected" : "Not selected")
+                            .accessibilityIdentifier("select-" + manga.title)
+                        } else {
                         NavigationLink(value: manga) { MangaCell(manga: manga) }
                             .accessibilityIdentifier("manga-" + manga.title)
                             .buttonStyle(.plain)
@@ -176,10 +226,38 @@ struct LibraryView: View {
                                     delete(manga)
                                 }
                             }
+                        }
                     }
                 }
             }
         }
+    }
+
+    private var selectionBar: some View {
+        HStack(spacing: 16) {
+            Text("\(selected.count) selected").font(.subheadline.monospacedDigit())
+                .accessibilityIdentifier("librarySelectionCount")
+            Spacer()
+            Button("Select all") { selected = Set(visible.map(\.id)) }
+                .disabled(visible.isEmpty)
+            Menu("Move", systemImage: "folder") {
+                Button("None") { moveSelected(to: nil) }
+                ForEach(categories) { category in
+                    Button(category.name) { moveSelected(to: category.id) }
+                }
+            }
+            .disabled(selected.isEmpty)
+        }
+        .padding().background(.regularMaterial)
+    }
+
+    private func moveSelected(to categoryID: UUID?) {
+        let titles = library.filter { selected.contains($0.id) }
+        do {
+            try LibraryOperations.move(titles, to: categoryID, context: context)
+            selected.removeAll()
+            isSelecting = false
+        } catch { errorMessage = "Couldn't move titles: \(error.localizedDescription)" }
     }
 
     private func handleImport(_ result: Result<[URL], Error>) {
