@@ -61,6 +61,11 @@ private struct ReaderContent: View {
     @State private var showControls = true
 
     @Environment(\.displayScale) private var displayScale
+    @AppStorage("reader.background") private var backgroundRaw = ReaderBackground.black.rawValue
+    @AppStorage("reader.tapZones") private var tapZones = true
+    @AppStorage("reader.keepAwake") private var keepAwake = true
+
+    private var background: ReaderBackground { ReaderBackground(rawValue: backgroundRaw) ?? .black }
 
     init(chapter: Chapter, onPrevious: (() -> Void)?, onNext: (() -> Void)?) {
 
@@ -98,7 +103,7 @@ private struct ReaderContent: View {
 
         ZStack {
 
-            Color.black.ignoresSafeArea()
+            background.color.ignoresSafeArea()
 
             if let error = vm.loadError {
 
@@ -110,7 +115,7 @@ private struct ReaderContent: View {
 
                 case .paged:
 
-                    PagedReader(vm: vm, current: $current, isRTL: isRTL, onTap: toggleControls)
+                    PagedReader(vm: vm, current: $current, isRTL: isRTL, onTap: handleTap)
 
                 case .webtoon:
 
@@ -226,6 +231,11 @@ private struct ReaderContent: View {
 
                     }
 
+                Picker("Background", selection: $backgroundRaw) {
+                        ForEach(ReaderBackground.allCases) { Text($0.label).tag($0.rawValue) }
+                    }
+                    Toggle("Tap edges to turn pages", isOn: $tapZones)
+                    Toggle("Keep screen on", isOn: $keepAwake)
                 } label: { Image(systemName: "slider.horizontal.3") }
                 .accessibilityLabel("Reader settings")
 
@@ -260,6 +270,9 @@ private struct ReaderContent: View {
         }
 
         .preferredColorScheme(.dark)
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = keepAwake }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onChange(of: keepAwake) { _, value in UIApplication.shared.isIdleTimerDisabled = value }
         .statusBarHidden(!showControls)
         .background { keyboardShortcuts }
         .background {
@@ -293,6 +306,14 @@ private struct ReaderContent: View {
 
     private func step(_ delta: Int) {
         current = min(max(current + delta, 0), max(vm.pageCount - 1, 0))
+    }
+
+    /// Edge taps turn pages (following reading direction); the centre toggles the controls.
+    private func handleTap(_ x: CGFloat) {
+        guard tapZones else { toggleControls(); return }
+        if x < 0.25 { step(isRTL ? 1 : -1) }
+        else if x > 0.75 { step(isRTL ? -1 : 1) }
+        else { toggleControls() }
     }
 
     private func toggleControls() {
@@ -376,7 +397,7 @@ private struct PageView: View {
 
                     .contentShape(Rectangle())
 
-                    .onTapGesture(perform: onTap)
+                    .onTapGesture { onTap(0.5) }
 
             }
 
