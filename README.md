@@ -81,6 +81,9 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Library with cover cards, a Continue reading shelf, title search, sorting (recent, title, unread), an unread filter, progress bars, chapter lists and manual read/unread.
 - Series page with a cover header, progress and chapter status indicators.
 - Four app icons (Indigo default, Ink, Coral, Light) chosen in Settings on iPhone and iPad; sources are in `design/`.
+- Categories (library chips, long-press to move), History tab, reader settings (background, edge-tap page turning, keep screen on).
+- Browse: MangaDex via its official API (safe/suggestive content only), your own Komga servers (Settings > Library > Servers, passwords in the Keychain), and optional custom sources.
+- Backup and restore of categories, progress and tracker links (Settings > Backup).
 - Optional, off-by-default custom sources (Settings tab) with a Browse tab; see docs/SOURCES.md.
 - Resume a partly read chapter before starting an unread one.
 - Paged left-to-right/right-to-left and vertical webtoon readers.
@@ -92,7 +95,7 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 
 iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom and zoom edge chaining are not implemented.
 
-EPUB, server integrations, downloads, categories, trackers, CloudKit and declarative sources remain future work. This is a local-reader MVP, not the complete handoff roadmap.
+Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, offline downloads, library update checks (BGAppRefresh), iCloud/CloudKit sync, widget and Shortcuts, MyAnimeList/Kitsu trackers, localization catalogs, and the monthly source-update pipeline. The handoff's declarative JSON source engine was replaced by the optional JavaScript source engine described in docs/SOURCES.md.
 
 ## Content and licensing
 

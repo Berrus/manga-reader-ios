@@ -9,7 +9,7 @@ struct SettingsView: View {
     @State private var errorMessage: String?
     @State private var isFetching = false
     @Environment(\.modelContext) private var context
-    @State private var exportDocument: BackupDocument?
+    @State private var exportDocument = BackupDocument(data: Data())
     @State private var showExporter = false
     @State private var showRestorer = false
     @State private var infoMessage: String?
