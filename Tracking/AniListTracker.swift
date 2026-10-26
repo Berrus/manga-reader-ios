@@ -146,11 +146,11 @@ struct AniListTracker: Tracker {
     }
 
     private struct FetchData: Decodable {
-        struct Media: Decodable {
+        struct MediaNode: Decodable {
             struct ListEntry: Decodable { let progress: Int?; let status: String?; let score: Double? }
             let mediaListEntry: ListEntry?
         }
-        let Media: Media
+        let Media: MediaNode
     }
 
     private struct SaveData: Decodable {}
