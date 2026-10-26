@@ -91,6 +91,10 @@ final class ReaderViewModel {
 
     func saveProgress(_ page: Int, markRead: Bool = true) {
         guard pageCount > 0 else { return }
+        if let manga = chapter.manga {
+            manga.lastReadAt = .now
+            manga.lastReadChapterName = chapter.name
+        }
         chapter.lastPage = min(max(page, 0), pageCount - 1)
         if markRead && (0..<pageCount).contains(page) && page == pageCount - 1 {
             let wasRead = chapter.isRead

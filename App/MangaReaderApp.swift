@@ -7,7 +7,7 @@ struct MangaReaderApp: App {
 
     init() {
         do {
-            let schema = Schema([Manga.self, Chapter.self, TrackLink.self])
+            let schema = Schema([Manga.self, Chapter.self, TrackLink.self, Category.self])
             #if DEBUG
             let inMemory = ProcessInfo.processInfo.environment["UI_TESTING"] == "1"
             #else

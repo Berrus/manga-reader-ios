@@ -313,7 +313,7 @@ private struct PagedReader: View {
 
     let isRTL: Bool
 
-    let onTap: () -> Void
+    let onTap: (CGFloat) -> Void
 
     /// Maps logical page <-> TabView position. The mapping is its own inverse.
 
@@ -349,7 +349,7 @@ private struct PageView: View {
 
     let page: Int
 
-    let onTap: () -> Void
+    let onTap: (CGFloat) -> Void
 
     @State private var image: UIImage?
     @State private var retryID = UUID()

@@ -29,6 +29,9 @@ final class Manga {
     var readerModeRaw: String
 
     @Attribute(.externalStorage) var coverData: Data?
+    var categoryID: UUID?
+    var lastReadAt: Date?
+    var lastReadChapterName: String?
 
     @Relationship(deleteRule: .cascade, inverse: \Chapter.manga)
 
