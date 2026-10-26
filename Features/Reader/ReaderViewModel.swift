@@ -20,6 +20,8 @@ final class ReaderViewModel {
 
     var imageRevision = 0
     var failedPages: Set<Int> = []
+    private(set) var preloadCount = 2
+    private(set) var cacheLimitMB = 64
     var pageCount: Int { chapter.pageCount }
 
     init(chapter: Chapter) {
@@ -88,9 +90,22 @@ final class ReaderViewModel {
     }
 
     func preload(around index: Int, fit: ImageFit) {
-        for i in [index + 1, index + 2, index - 1] where i >= 0 && i < pageCount {
+        guard preloadCount > 0 else { return }
+        let candidates = (1...preloadCount).map { index + $0 } + [index - 1]
+        for i in candidates where i >= 0 && i < pageCount {
             Task { _ = await image(at: i, fit: fit) }
         }
+    }
+
+    func configureMemory(preload: Int, cacheMB: Int) {
+        let preload = ReaderTuning.preload(preload)
+        let cacheMB = ReaderTuning.cacheMB(cacheMB)
+        guard preload != preloadCount || cacheMB != cacheLimitMB else { return }
+        preloadCount = preload
+        cacheLimitMB = cacheMB
+        cache.countLimit = max(4, preload * 2 + 2)
+        cache.totalCostLimit = cacheMB * 1024 * 1024
+        clearCache()
     }
 
     func configureViewport(_ size: CGSize, scale: CGFloat) {

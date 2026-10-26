@@ -7,6 +7,8 @@ struct WebtoonReader: View {
     @Binding var current: Int
 
     let onTap: () -> Void
+    @Binding var autoScroll: Bool
+    let scrollSpeed: Double
 
     @State private var scrolledID: Int?
 
@@ -25,6 +27,7 @@ struct WebtoonReader: View {
             }
 
             .scrollTargetLayout()
+            .background(ScrollAutoAdvance(isRunning: $autoScroll, pointsPerSecond: scrollSpeed))
 
         }
 

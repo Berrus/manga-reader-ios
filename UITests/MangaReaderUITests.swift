@@ -98,4 +98,21 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "manga-Moonlit Express").firstMatch.exists)
     }
 
+    func testAutoscrollStopsWhenAppLeavesForeground() {
+        let app = launch(mode: "webtoon")
+        let book = app.descendants(matching: .any).matching(identifier: "manga-Moonlit Express").firstMatch
+        XCTAssertTrue(book.waitForExistence(timeout: 30))
+        book.tap()
+        app.buttons["resumeReading"].tap()
+        XCTAssertTrue(app.images["webtoonImage"].firstMatch.waitForExistence(timeout: 20))
+        let control = app.buttons["readerAutoscroll"]
+        XCTAssertTrue(control.waitForExistence(timeout: 10))
+        control.tap()
+        XCTAssertTrue(app.buttons["Pause autoscroll"].exists)
+        screenshot("06-webtoon-autoscroll")
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(app.buttons["Start autoscroll"].waitForExistence(timeout: 10))
+    }
+
 }
