@@ -29,6 +29,7 @@ struct LibraryView: View {
     @State private var showImporter = false
     @State private var errorMessage: String?
     @State private var search = ""
+    @State private var updater = LibraryUpdater.shared
 
     private let columns = [GridItem(.adaptive(minimum: 120, maximum: 200), spacing: 18, alignment: .top)]
 
@@ -72,6 +73,14 @@ struct LibraryView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
+                            if updater.isRunning {
+                                VStack(alignment: .leading) {
+                                    Text("Updating: \(updater.currentTitle ?? "Library")").font(.caption)
+                                    ProgressView(value: Double(updater.completedCount),
+                                                 total: Double(max(updater.totalCount, 1)))
+                                }
+                            }
+                            NavigationLink("Updates", systemImage: "arrow.triangle.2.circlepath") { UpdatesView() }
                             if !isSelecting && !hasFilters && selectedCategory == nil && search.isEmpty && !continueReading.isEmpty {
                                 shelf
                             }

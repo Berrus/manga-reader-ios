@@ -33,6 +33,8 @@ struct MangaReaderApp: App {
                     .tabItem { Label("History", systemImage: "clock") }
                 BrowseView()
                     .tabItem { Label("Browse", systemImage: "globe") }
+                FeedView()
+                    .tabItem { Label("Feed", systemImage: "rectangle.stack") }
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "gearshape") }
             }

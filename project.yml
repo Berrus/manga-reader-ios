@@ -3,6 +3,14 @@ options:
   bundleIdPrefix: com.example
   deploymentTarget:
     iOS: "17.0"
+configs:
+  Debug: debug
+  Release: release
+  AppStore: release
+settings:
+  configs:
+    AppStore:
+      SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
 packages:
   ZIPFoundation:
     url: https://github.com/weichsel/ZIPFoundation
@@ -92,3 +100,15 @@ schemes:
         - MangaReaderTests
         - MangaReaderUITests
       gatherCoverageData: true
+  FolioReader-AppStore:
+    build:
+      targets:
+        MangaReader: all
+    run:
+      config: AppStore
+    test:
+      config: AppStore
+      targets:
+        - MangaReaderUITests
+    archive:
+      config: AppStore
