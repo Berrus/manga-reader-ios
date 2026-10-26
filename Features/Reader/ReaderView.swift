@@ -34,9 +34,9 @@ struct ReaderView: View {
 
             chapter: chapter,
 
-            onPrevious: previousChapter.map { target in { chapter = target } },
+            onPrevious: previousChapter.map { target -> () -> Void in { chapter = target } },
 
-            onNext: nextChapter.map { target in { chapter = target } }
+            onNext: nextChapter.map { target -> () -> Void in { chapter = target } }
 
         )
 
