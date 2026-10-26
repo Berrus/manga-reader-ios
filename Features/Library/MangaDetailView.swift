@@ -9,6 +9,7 @@ struct MangaDetailView: View {
     let manga: Manga
 
     @Environment(\.modelContext) private var context
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var openChapter: Chapter?
 
@@ -136,19 +137,23 @@ struct MangaDetailView: View {
 
     }
 
+    private var coverSize: CGSize {
+        sizeClass == .regular ? CGSize(width: 120, height: 180) : CGSize(width: 90, height: 130)
+    }
+
     @ViewBuilder private var cover: some View {
 
         if let data = manga.coverData, let image = UIImage(data: data) {
 
             Image(uiImage: image).resizable().scaledToFill()
 
-                .frame(width: 90, height: 130).clipped()
+                .frame(width: coverSize.width, height: coverSize.height).clipped()
 
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
         } else {
 
-            RoundedRectangle(cornerRadius: 8).fill(.gray.opacity(0.3)).frame(width: 90, height: 130)
+            RoundedRectangle(cornerRadius: 8).fill(.gray.opacity(0.3)).frame(width: coverSize.width, height: coverSize.height)
 
         }
 

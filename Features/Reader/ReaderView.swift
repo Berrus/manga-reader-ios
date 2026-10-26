@@ -60,6 +60,8 @@ private struct ReaderContent: View {
 
     @State private var showControls = true
 
+    @Environment(\.displayScale) private var displayScale
+
     init(chapter: Chapter, onPrevious: (() -> Void)?, onNext: (() -> Void)?) {
 
         self.chapter = chapter
@@ -244,6 +246,14 @@ private struct ReaderContent: View {
 
         .statusBarHidden(!showControls)
         .background { keyboardShortcuts }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { updateViewport(geo.size) }
+                    .onChange(of: geo.size) { _, size in updateViewport(size) }
+            }
+            .ignoresSafeArea()
+        }
 
     }
 
@@ -258,6 +268,11 @@ private struct ReaderContent: View {
         }
         .opacity(0)
         .accessibilityHidden(true)
+    }
+
+    private func updateViewport(_ size: CGSize) {
+        vm.viewport = size
+        vm.displayScale = displayScale
     }
 
     private func step(_ delta: Int) {

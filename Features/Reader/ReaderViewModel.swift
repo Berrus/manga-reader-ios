@@ -16,6 +16,13 @@ final class ReaderViewModel {
 
     var loadError: String?
 
+    /// Set by the reader view from its actual size and display scale.
+    @ObservationIgnored var viewport = CGSize(width: 820, height: 1180)
+    @ObservationIgnored var displayScale: CGFloat = 2
+
+    /// Webtoon pages stop growing past this width so iPad/Mac don't blow strips up edge to edge.
+    static let webtoonMaxWidth: CGFloat = 900
+
     var pageCount: Int { chapter.pageCount }
 
     init(chapter: Chapter) {
@@ -39,13 +46,12 @@ final class ReaderViewModel {
         open()
         guard let archive else { return nil }
 
-        let scale = UIScreen.main.scale
-
-        let bounds = UIScreen.main.bounds
-
-        let screenPixels = bounds.height * scale * 1.5
-
-        let widthPixels = bounds.width * scale
+        // Size from the reader's real viewport (not the device screen) so iPad
+        // multitasking and resizable Mac windows get right-sized bitmaps. The longest
+        // side is used so rotating doesn't invalidate cached images.
+        let longest = max(viewport.width, viewport.height)
+        let screenPixels = min(longest * displayScale * 1.5, 4096)
+        let widthPixels = min(longest, Self.webtoonMaxWidth) * displayScale
 
         let task = Task<UIImage?, Never> {
 

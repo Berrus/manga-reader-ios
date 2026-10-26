@@ -16,7 +16,7 @@ struct LibraryView: View {
 
     @State private var search = ""
 
-    private let columns = [GridItem(.adaptive(minimum: 110), spacing: 12)]
+    private let columns = [GridItem(.adaptive(minimum: 120, maximum: 220), spacing: 16)]
 
     private var filtered: [Manga] {
 
@@ -144,7 +144,8 @@ private struct MangaCell: View {
 
             ZStack(alignment: .topTrailing) {
 
-                Group {
+                Color.clear.aspectRatio(2 / 3, contentMode: .fit).overlay {
+                    Group {
 
                     if let data = manga.coverData, let image = UIImage(data: data) {
 
@@ -158,7 +159,8 @@ private struct MangaCell: View {
 
                 }
 
-                .frame(height: 160).frame(maxWidth: .infinity).clipped()
+                .frame(maxWidth: .infinity, maxHeight: .infinity).clipped()
+                }
 
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 

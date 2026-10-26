@@ -72,6 +72,8 @@ private struct WebtoonPage: View {
 
                     .scaledToFit()
 
+                    .frame(maxWidth: ReaderViewModel.webtoonMaxWidth)
+
                     .frame(maxWidth: .infinity)
 
             } else {
