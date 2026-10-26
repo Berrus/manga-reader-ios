@@ -72,7 +72,9 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(settings.waitForExistence(timeout: 10))
         settings.tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.switches["Enable custom sources"].exists)
+        let customSources = app.switches["Enable custom sources"]
+        for _ in 0..<4 where !customSources.exists { app.swipeUp() }
+        XCTAssertTrue(customSources.exists)
     }
 
     func testNextUndownloadedChapterRoutesToStreaming() {
