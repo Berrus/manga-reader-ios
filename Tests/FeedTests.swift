@@ -59,4 +59,21 @@ final class FeedTests: XCTestCase {
         XCTAssertTrue(vm.sections.allSatisfy { $0.results.isEmpty })
         XCTAssertFalse(vm.isLoading)
     }
+    func testOverlappingRefreshCancelsOldRequestsBeforeStartingMore() async throws {
+        let probe = FeedProbe()
+        let vm = FeedViewModel(resolve: { _ in FeedTestSource(probe: probe) })
+        let first = Task { await vm.load(entries(3)) }
+        for _ in 0..<100 {
+            if await probe.active > 0 { break }
+            try await Task.sleep(nanoseconds: 1_000_000)
+        }
+        let replacement = entries(3)
+        await vm.load(replacement)
+        await first.value
+        XCTAssertEqual(vm.sections.map(\.id), replacement.map(\.id))
+        XCTAssertTrue(vm.sections.allSatisfy { $0.results.count == 20 })
+        let peak = await probe.peak
+        XCTAssertLessThanOrEqual(peak, 3)
+        XCTAssertFalse(vm.isLoading)
+    }
 }

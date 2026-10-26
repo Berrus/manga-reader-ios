@@ -14,6 +14,7 @@ final class FeedViewModel {
     private(set) var sections: [Section] = []
     private(set) var isLoading = false
     private var generation = 0
+    private var worker: Task<Void, Never>?
     private let resolve: @MainActor (String) -> (any Source)?
     init(resolve: @escaping @MainActor (String) -> (any Source)? = { SourceRegistry.source(id: $0) }) {
         self.resolve = resolve
@@ -21,10 +22,25 @@ final class FeedViewModel {
     func load(_ entries: [SavedSearchStore.Entry]) async {
         generation += 1
         let revision = generation
+        let previous = worker
+        previous?.cancel()
+        await previous?.value
+        guard revision == generation else { return }
+        guard !Task.isCancelled else { worker = nil; isLoading = false; return }
         let entries = Array(entries.prefix(8))
         sections = entries.map { Section(id: $0.id, sourceID: $0.sourceID, query: $0.query) }
         isLoading = true
-        defer { if revision == generation { isLoading = false } }
+        let task = Task { await self.performLoad(entries, revision: revision) }
+        worker = task
+        await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
+        if revision == generation { worker = nil; isLoading = false }
+    }
+
+    private func performLoad(_ entries: [SavedSearchStore.Entry], revision: Int) async {
         // Three concurrent calls at most; each source still uses its bounded transport.
         for start in stride(from: 0, to: entries.count, by: 3) {
             guard !Task.isCancelled, revision == generation else { return }
