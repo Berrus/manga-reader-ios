@@ -51,6 +51,14 @@ What your Apple account allows:
 
 Common problems: "No profiles / signing for team" means the team or bundle ID is not set (or the ID is taken: change it); "Developer Mode required" means step 2 was skipped; a stale SwiftData store after a model change is fixed by deleting the app from the device or simulator and running again.
 
+## AniList tracking (optional)
+
+1. Sign in at <https://anilist.co/settings/developer> and create a client. Set the **Redirect URL** to `folioreader://anilist`.
+2. Copy the client ID into `project.yml` (`ANILIST_CLIENT_ID`), then run `xcodegen generate`.
+3. In the app: Settings > Tracking > Connect AniList. Open a series and tap **Link to AniList**.
+
+Progress is synced when you finish a chapter and at launch. The higher chapter number wins and sync never marks local chapters unread. AniList stores whole chapters only, so 12.5 is sent as 12. Chapter numbers come from file names, so check them if a sync looks off. The token is kept in the Keychain; no client secret is used.
+
 ## Run on a Mac
 
 The Mac version is built with Mac Catalyst. Choose the **My Mac (Mac Catalyst)** destination and Run. It needs a signing team (the app is sandboxed with user-selected file access and network client entitlements). Arrow keys, space and up/down turn pages.

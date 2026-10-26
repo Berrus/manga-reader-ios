@@ -1,4 +1,5 @@
 import SwiftUI
+import AuthenticationServices
 
 struct SettingsView: View {
     @Environment(SourceStore.self) private var store
@@ -14,6 +15,21 @@ struct SettingsView: View {
             Form {
                 if UIApplication.shared.supportsAlternateIcons {
                     Section("App icon") { AppIconPicker() }
+                }
+
+                Section {
+                    if !AniListAuth.shared.hasClientID {
+                        Text("Add your AniList client ID in project.yml to enable tracking (see README).")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    } else if AniListAuth.shared.isConnected {
+                        Button("Disconnect AniList", role: .destructive) { AniListAuth.shared.disconnect() }
+                    } else {
+                        Button("Connect AniList") { connectAniList() }
+                    }
+                } header: {
+                    Text("Tracking")
+                } footer: {
+                    Text("Reading progress is sent to AniList after you finish a chapter. Progress only moves forward.")
                 }
 
                 Section {
@@ -69,6 +85,14 @@ struct SettingsView: View {
                 Button("OK") { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
             .overlay { if isFetching { ProgressView() } }
+        }
+    }
+
+    private func connectAniList() {
+        Task {
+            do { try await AniListAuth.shared.connect() }
+            catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin { }
+            catch { errorMessage = error.localizedDescription }
         }
     }
 

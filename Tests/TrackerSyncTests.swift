@@ -76,3 +76,19 @@ final class TrackerSyncTests: XCTestCase {
         XCTAssertEqual(tracker.pushed.first?.status, .completed)
     }
 }
+
+final class AniListMappingTests: XCTestCase {
+    func testTokenIsReadFromRedirectFragment() {
+        let url = URL(string: "folioreader://anilist#access_token=abc.def&token_type=Bearer&expires_in=31536000")!
+        XCTAssertEqual(AniListAuth.token(from: url), "abc.def")
+        XCTAssertNil(AniListAuth.token(from: URL(string: "folioreader://anilist?error=access_denied")!))
+    }
+
+    func testStatusMappingRoundTrips() {
+        for status in ReadStatus.allCases {
+            XCTAssertEqual(AniListTracker.status(from: AniListTracker.anilistStatus(status)), status)
+        }
+        XCTAssertEqual(AniListTracker.status(from: "REPEATING"), .reading)
+        XCTAssertEqual(AniListTracker.status(from: nil), .planning)
+    }
+}

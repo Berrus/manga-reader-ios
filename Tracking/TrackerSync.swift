@@ -20,6 +20,7 @@ final class TrackerSync {
     private var syncing: Set<UUID> = []
 
     func register(_ tracker: any Tracker) { trackers[tracker.id] = tracker }
+    func unregister(id: String) { trackers[id] = nil }
 
     /// Compares one link with its remote entry and moves the lagging side forward.
     @discardableResult

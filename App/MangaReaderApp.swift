@@ -33,7 +33,10 @@ struct MangaReaderApp: App {
             }
             .environment(SourceStore.shared)
             .tint(Theme.accent)
-            .task { await TrackerSync.shared.syncAll(context: container.mainContext) }
+            .task {
+                AniListAuth.shared.restore()
+                await TrackerSync.shared.syncAll(context: container.mainContext)
+            }
             .task {
                 #if DEBUG
                 if ProcessInfo.processInfo.environment["UI_TESTING"] == "1" {

@@ -26,6 +26,10 @@ struct MangaDetailView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
+            if AniListAuth.shared.isConnected {
+                TrackingSection(manga: manga)
+            }
+
             Section("Chapters") {
 
                 if manga.chapters.isEmpty {
