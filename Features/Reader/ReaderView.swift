@@ -185,6 +185,7 @@ private struct ReaderContent: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
 
         .toolbar(showControls ? .visible : .hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
 
         .toolbar {
 
