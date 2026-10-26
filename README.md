@@ -83,6 +83,7 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Four app icons (Indigo default, Ink, Coral, Light) chosen in Settings on iPhone and iPad; sources are in `design/`.
 - Categories (library chips, long-press to move), History tab, reader settings (background, edge-tap page turning, keep screen on).
 - Browse: MangaDex via its official API (safe/suggestive content only), your own Komga servers (Settings > Library > Servers, passwords in the Keychain), and optional custom sources.
+- Offline downloads: add a series from Browse to the library, then download chapters (swipe a chapter, or the download menu on the series page). Settings > Library > Downloads sets automatic downloads: series you're reading, selected series, or recently updated; how many chapters to keep ahead; Wi-Fi only; delete after reading. Updates are checked when you open the app (at most every 4 hours), with a best-effort iOS background refresh.
 - Backup and restore of categories, progress and tracker links (Settings > Backup).
 - Optional, off-by-default custom sources (Settings tab) with a Browse tab; see docs/SOURCES.md.
 - Resume a partly read chapter before starting an unread one.
@@ -95,7 +96,7 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 
 iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom and zoom edge chaining are not implemented.
 
-Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, offline downloads, library update checks (BGAppRefresh), iCloud/CloudKit sync, widget and Shortcuts, MyAnimeList/Kitsu trackers, localization catalogs, and the monthly source-update pipeline. The handoff's declarative JSON source engine was replaced by the optional JavaScript source engine described in docs/SOURCES.md.
+Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, true background downloads (URLSession background sessions), iCloud/CloudKit sync, widget and Shortcuts, MyAnimeList/Kitsu trackers, localization catalogs, and the monthly source-update pipeline. The handoff's declarative JSON source engine was replaced by the optional JavaScript source engine described in docs/SOURCES.md.
 
 ## Content and licensing
 

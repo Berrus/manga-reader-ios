@@ -20,7 +20,7 @@ final class LibraryUpdater {
     private(set) var isRunning = false
     private(set) var lastSummary: Summary?
     private let log = Logger(subsystem: "FolioReader", category: "updates")
-    static let minimumInterval: TimeInterval = 4 * 3600
+    nonisolated static let minimumInterval: TimeInterval = 4 * 3600
 
     /// Runs a check if enough time has passed (or `force`). Returns nil when skipped.
     @discardableResult
