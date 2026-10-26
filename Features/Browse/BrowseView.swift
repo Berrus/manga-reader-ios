@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
@@ -105,6 +106,16 @@ struct SourceSearchView: View {
 struct SourceMangaView: View {
     let source: any Source
     let manga: MangaSummary
+    @Environment(\.modelContext) private var context
+    @Query private var existing: [Manga]
+
+    init(source: any Source, manga: MangaSummary) {
+        self.source = source
+        self.manga = manga
+        let sourceID = source.id
+        let remoteID = manga.id
+        _existing = Query(filter: #Predicate<Manga> { $0.sourceID == sourceID && $0.remoteID == remoteID })
+    }
     @State private var details: MangaDetails?
     @State private var chapters: [ChapterSummary] = []
     @State private var isLoading = true
@@ -134,8 +145,48 @@ struct SourceMangaView: View {
         }
         .navigationTitle(manga.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if !existing.isEmpty {
+                    Label("In library", systemImage: "checkmark.circle.fill")
+                } else {
+                    Button("Add to library", systemImage: "plus") { addToLibrary() }
+                        .disabled(isLoading || chapters.isEmpty)
+                }
+            }
+        }
         .overlay { if isLoading { ProgressView() } }
         .task { await load() }
+    }
+
+        /// Saves the series and its chapter list so it can be downloaded and read offline.
+    private func addToLibrary() {
+        let entry = Manga(title: details?.title ?? manga.title, coverData: nil)
+        entry.sourceID = source.id
+        entry.remoteID = manga.id
+        context.insert(entry)
+        for item in chapters {
+            let chapter = Chapter(name: item.name,
+                                  number: item.number ?? LibraryImporter.guessNumber(from: item.name),
+                                  fileName: "", pageCount: 0)
+            chapter.remoteID = item.id
+            context.insert(chapter)
+            chapter.manga = entry
+        }
+        try? context.save()
+
+        let coverString = details?.coverURL ?? manga.coverURL
+        let headers = source.imageHeaders
+        Task {
+            guard let coverString, let url = URL(string: coverString) else { return }
+            var request = URLRequest(url: url, timeoutInterval: 20)
+            for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
+            guard let (data, _) = try? await URLSession.shared.data(for: request) else { return }
+            let jpeg = await Task.detached(priority: .utility) {
+                ImageDownsampler.image(from: data, maxPixel: 500)?.jpegData(compressionQuality: 0.8)
+            }.value
+            entry.coverData = jpeg
+        }
     }
 
     private func load() async {

@@ -34,6 +34,7 @@ final class DownloadManager {
     private(set) var isPumping = false
     @ObservationIgnored private var chapters: [UUID: Chapter] = [:]
     @ObservationIgnored private var currentTask: Task<Void, Never>?
+    @ObservationIgnored private var cancelledIDs: Set<UUID> = []
 
     func progress(for chapter: Chapter) -> Double? {
         jobs.first { $0.chapterID == chapter.id }?.progress
@@ -50,17 +51,21 @@ final class DownloadManager {
         pump()
     }
 
+    /// Removes a queued chapter, or stops it after the page being fetched if it's already running.
     func cancel(chapterID: UUID) {
-        jobs.removeAll { $0.chapterID == chapterID && !$0.isActive }
-        if jobs.first(where: { $0.chapterID == chapterID })?.isActive == true { currentTask?.cancel() }
-        chapters[chapterID] = nil
+        if jobs.first(where: { $0.chapterID == chapterID })?.isActive == true {
+            cancelledIDs.insert(chapterID)
+        } else {
+            remove(chapterID)
+        }
     }
 
     func cancelAll() {
-        currentTask?.cancel()
-        jobs.removeAll()
-        chapters.removeAll()
+        for job in jobs { cancel(chapterID: job.chapterID) }
     }
+
+    /// Restarts the queue, e.g. when the app becomes active or Wi-Fi returns.
+    func resume() { pump() }
 
     func retryFailed() {
         for index in jobs.indices where jobs[index].failure != nil { jobs[index].failure = nil }
@@ -94,6 +99,7 @@ final class DownloadManager {
                 try await download(chapter)
                 remove(job.chapterID)
             } catch is CancellationError {
+                cancelledIDs.remove(job.chapterID)
                 remove(job.chapterID)
                 if Task.isCancelled { break }
             } catch {
@@ -131,6 +137,7 @@ final class DownloadManager {
         do {
             for (index, page) in pages.enumerated() {
                 try Task.checkCancellation()
+                if cancelledIDs.contains(chapter.id) { throw CancellationError() }
                 let data = try await Self.fetch(page)
                 let ext = URL(string: page.url)?.pathExtension.lowercased()
                 let name = String(format: "%04d.%@", index + 1, (ext?.isEmpty == false ? ext! : "img"))

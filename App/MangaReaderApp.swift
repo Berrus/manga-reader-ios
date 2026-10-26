@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct MangaReaderApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     private let container: ModelContainer
 
     init() {
@@ -16,6 +17,8 @@ struct MangaReaderApp: App {
             container = try ModelContainer(for: schema, configurations: [
                 ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
             ])
+            DownloadSettings.registerDefaults()
+            BackgroundRefresh.register(container: container)
         } catch {
             fatalError("Could not open the library: \(error)")
         }
@@ -35,9 +38,20 @@ struct MangaReaderApp: App {
             }
             .environment(SourceStore.shared)
             .tint(Theme.accent)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active {
+                    Task {
+                        await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
+                        DownloadManager.shared.resume()
+                    }
+                } else if phase == .background {
+                    BackgroundRefresh.schedule()
+                }
+            }
             .task {
                 AniListAuth.shared.restore()
                 await TrackerSync.shared.syncAll(context: container.mainContext)
+                await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
             }
             .task {
                 #if DEBUG

@@ -21,6 +21,7 @@ struct SettingsView: View {
                 Section("Library") {
                     NavigationLink("Categories") { CategoriesView() }
                     NavigationLink("Servers") { ServersView() }
+                    NavigationLink("Downloads") { DownloadsSettingsView() }
                 }
 
                 Section {

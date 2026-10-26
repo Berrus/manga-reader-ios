@@ -11,7 +11,7 @@ targets:
   MangaReader:
     type: application
     platform: iOS
-    sources: [App, Core, Domain, Data, Features, Sources, Tracking, Resources]
+    sources: [App, Core, Domain, Data, Features, Sources, Tracking, Downloads, Resources]
     dependencies:
       - package: ZIPFoundation
     info:
@@ -19,6 +19,10 @@ targets:
       properties:
         CFBundleDisplayName: Folio Reader
         AniListClientID: $(ANILIST_CLIENT_ID)
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).refresh
+        UIBackgroundModes:
+          - fetch
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSLocalNetworkUsageDescription: Folio Reader connects to media servers on your local network that you add.

@@ -12,6 +12,7 @@ struct MangaDetailView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var openChapter: Chapter?
+    @State private var streamChapter: Chapter?
 
     @State private var showImporter = false
 
@@ -40,7 +41,7 @@ struct MangaDetailView: View {
 
                 ForEach(manga.sortedChapters) { chapter in
 
-                    Button { openChapter = chapter } label: { ChapterRow(chapter: chapter) }
+                    Button { open(chapter) } label: { ChapterRow(chapter: chapter) }
 
                         .buttonStyle(.plain)
 
@@ -59,9 +60,18 @@ struct MangaDetailView: View {
                         .swipeActions(edge: .trailing) {
 
                             Button("Delete", systemImage: "trash", role: .destructive) {
-
                                 delete(chapter)
-
+                            }
+                            if chapter.isRemote {
+                                if chapter.isDownloaded {
+                                    Button("Remove download", systemImage: "arrow.down.circle.dotted") {
+                                        chapter.removeFiles()
+                                    }.tint(.gray)
+                                } else {
+                                    Button("Download", systemImage: "arrow.down.circle") {
+                                        DownloadManager.shared.enqueue([chapter])
+                                    }.tint(.green)
+                                }
                             }
 
                         }
@@ -78,11 +88,10 @@ struct MangaDetailView: View {
         .listStyle(.insetGrouped)
 
         .navigationDestination(item: $openChapter) { ReaderView(chapter: $0) }
+        .navigationDestination(item: $streamChapter) { RemoteChapterView(chapter: $0) }
 
         .toolbar {
-
-            Button("Add chapters", systemImage: "plus") { showImporter = true }
-
+            ToolbarItem(placement: .topBarTrailing) { toolbarContent }
         }
 
         .fileImporter(isPresented: $showImporter,
@@ -103,6 +112,37 @@ struct MangaDetailView: View {
 
         } message: { Text(errorMessage ?? "") }
 
+    }
+
+        /// Downloaded and imported chapters open in the offline reader; others stream from the source.
+    private func open(_ chapter: Chapter) {
+        if chapter.isRemote && !chapter.isDownloaded { streamChapter = chapter }
+        else { openChapter = chapter }
+    }
+
+    @ViewBuilder private var toolbarContent: some View {
+        if manga.isRemote {
+            Menu {
+                Toggle("Auto-download new chapters", isOn: Binding(
+                    get: { manga.autoDownload }, set: { manga.autoDownload = $0 }))
+                Button("Download next 5 unread", systemImage: "arrow.down.circle") {
+                    DownloadManager.shared.enqueue(AutoDownloadPolicy.nextUnread(manga, 5))
+                }
+                Button("Download all unread", systemImage: "arrow.down.circle.fill") {
+                    DownloadManager.shared.enqueue(AutoDownloadPolicy.nextUnread(manga, .max))
+                }
+                Button("Check for new chapters", systemImage: "arrow.clockwise") {
+                    Task { _ = try? await LibraryUpdater.shared.refresh(manga) }
+                }
+                Divider()
+                Button("Delete downloads", systemImage: "trash", role: .destructive) {
+                    manga.chapters.filter(\.isDownloaded).forEach { $0.removeFiles() }
+                }
+            } label: { Image(systemName: "arrow.down.circle") }
+            .accessibilityLabel("Downloads")
+        } else {
+            Button("Add chapters", systemImage: "plus") { showImporter = true }
+        }
     }
 
     private var resumeLabel: String {
@@ -130,7 +170,7 @@ struct MangaDetailView: View {
                 }
                 if let resume = manga.resumeChapter {
                     Button {
-                        openChapter = resume
+                        open(resume)
                     } label: {
                         Label(resumeLabel, systemImage: "play.fill")
                             .frame(maxWidth: .infinity)
@@ -215,13 +255,33 @@ private struct ChapterRow: View {
                     Text("Page \(chapter.lastPage + 1) of \(chapter.pageCount)")
                         .font(.caption).foregroundStyle(Theme.accent)
                 } else {
-                    Text("\(chapter.pageCount) pages").font(.caption).foregroundStyle(.secondary)
+                    Text(chapter.isRemote && !chapter.isDownloaded ? "Online" : "\(chapter.pageCount) pages")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             Spacer()
+            downloadBadge
             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
         }
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder private var downloadBadge: some View {
+        if chapter.isRemote {
+            if let job = DownloadManager.shared.state(for: chapter) {
+                if job.failure != nil {
+                    Image(systemName: "exclamationmark.triangle").foregroundStyle(.orange)
+                } else if job.isActive {
+                    ProgressRing(progress: job.progress).frame(width: 18, height: 18)
+                } else {
+                    Image(systemName: "clock").foregroundStyle(.secondary)
+                }
+            } else if chapter.isDownloaded {
+                Image(systemName: "arrow.down.circle.fill").foregroundStyle(Theme.accent)
+            } else {
+                Image(systemName: "icloud").foregroundStyle(.tertiary)
+            }
+        }
     }
 
     @ViewBuilder private var status: some View {
