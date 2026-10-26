@@ -243,7 +243,25 @@ private struct ReaderContent: View {
         }
 
         .statusBarHidden(!showControls)
+        .background { keyboardShortcuts }
 
+    }
+
+    /// Hardware-keyboard paging for iPad and Mac. Left/right follow the reading direction.
+    private var keyboardShortcuts: some View {
+        Group {
+            Button("Left") { step(isRTL ? 1 : -1) }.keyboardShortcut(.leftArrow, modifiers: [])
+            Button("Right") { step(isRTL ? -1 : 1) }.keyboardShortcut(.rightArrow, modifiers: [])
+            Button("Next") { step(1) }.keyboardShortcut(.space, modifiers: [])
+            Button("Down") { step(1) }.keyboardShortcut(.downArrow, modifiers: [])
+            Button("Up") { step(-1) }.keyboardShortcut(.upArrow, modifiers: [])
+        }
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    private func step(_ delta: Int) {
+        current = min(max(current + delta, 0), max(vm.pageCount - 1, 0))
     }
 
     private func toggleControls() {

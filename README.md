@@ -12,6 +12,10 @@ Quickest: on a Mac run `brew install xcodegen && xcodegen generate && open Manga
 4. Add https://github.com/weichsel/ZIPFoundation via Swift Package Manager and link ZIPFoundation to the app target.
 5. Select your development team and a unique bundle identifier, then build and address compiler diagnostics.
 
+## Platforms
+
+iPhone, iPad (all orientations, multitasking), and Mac via Mac Catalyst (sandboxed, user-selected file access, network client). Arrow keys/space turn pages with a hardware keyboard. Pick the "My Mac (Mac Catalyst)" destination in Xcode.
+
 ## Current source
 
 Local CBZ import, library and chapters, paged LTR/RTL reading, zoom, vertical webtoon reading, and reading progress. EPUB and server integrations remain planned. No Xcode project or successful build is included yet.

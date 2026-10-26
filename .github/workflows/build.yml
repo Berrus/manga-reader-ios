@@ -14,3 +14,9 @@ jobs:
             -project MangaReader.xcodeproj -scheme MangaReader \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+      - name: Build for Mac Catalyst
+        run: |
+          xcodebuild build \
+            -project MangaReader.xcodeproj -scheme MangaReader \
+            -destination 'generic/platform=macOS,variant=Mac Catalyst' \
+            CODE_SIGNING_ALLOWED=NO
