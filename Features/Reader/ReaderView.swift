@@ -60,6 +60,8 @@ private struct ReaderContent: View {
 
     @State private var showControls = true
 
+    @Environment(\.displayScale) private var displayScale
+
     init(chapter: Chapter, onPrevious: (() -> Void)?, onNext: (() -> Void)?) {
 
         self.chapter = chapter
@@ -167,7 +169,12 @@ private struct ReaderContent: View {
 
                     }
 
-                    .padding().background(.ultraThinMaterial)
+                    .padding(14)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .environment(\.colorScheme, .dark)
+                    .frame(maxWidth: 600)
+                    .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+                    .padding(.horizontal, 12).padding(.bottom, 8)
 
                 }
 
@@ -183,6 +190,7 @@ private struct ReaderContent: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
 
         .toolbar(showControls ? .visible : .hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
 
         .toolbar {
 
@@ -253,7 +261,38 @@ private struct ReaderContent: View {
 
         .preferredColorScheme(.dark)
         .statusBarHidden(!showControls)
+        .background { keyboardShortcuts }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { updateViewport(geo.size) }
+                    .onChange(of: geo.size) { _, size in updateViewport(size) }
+            }
+            .ignoresSafeArea()
+        }
 
+    }
+
+    /// Hardware-keyboard paging for iPad and Mac. Left/right follow the reading direction.
+    private var keyboardShortcuts: some View {
+        Group {
+            Button("Left") { step(isRTL ? 1 : -1) }.keyboardShortcut(.leftArrow, modifiers: [])
+            Button("Right") { step(isRTL ? -1 : 1) }.keyboardShortcut(.rightArrow, modifiers: [])
+            Button("Next") { step(1) }.keyboardShortcut(.space, modifiers: [])
+            Button("Down") { step(1) }.keyboardShortcut(.downArrow, modifiers: [])
+            Button("Up") { step(-1) }.keyboardShortcut(.upArrow, modifiers: [])
+        }
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    private func updateViewport(_ size: CGSize) {
+        vm.viewport = size
+        vm.displayScale = displayScale
+    }
+
+    private func step(_ delta: Int) {
+        current = min(max(current + delta, 0), max(vm.pageCount - 1, 0))
     }
 
     private func toggleControls() {

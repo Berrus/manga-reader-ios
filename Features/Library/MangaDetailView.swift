@@ -9,6 +9,7 @@ struct MangaDetailView: View {
     let manga: Manga
 
     @Environment(\.modelContext) private var context
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     @State private var openChapter: Chapter?
 
@@ -20,42 +21,10 @@ struct MangaDetailView: View {
 
         List {
 
-            Section {
-
-                HStack(alignment: .top, spacing: 12) {
-
-                    cover
-
-                    VStack(alignment: .leading, spacing: 8) {
-
-                        Text(manga.title).font(.headline)
-
-                        Text("\(manga.chapters.count) chapters · \(manga.unreadCount) unread")
-
-                            .font(.caption).foregroundStyle(.secondary)
-
-                        if let resume = manga.resumeChapter {
-
-                            Button {
-
-                                openChapter = resume
-
-                            } label: {
-
-                                Label(resumeLabel, systemImage: "play.fill")
-
-                            }
-
-                            .buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("resumeReading")
-
-                        }
-
-                    }
-
-                }
-
-            }
+            hero
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
 
             Section("Chapters") {
 
@@ -79,7 +48,7 @@ struct MangaDetailView: View {
 
                                 toggleRead(chapter)
 
-                            }.tint(.blue)
+                            }.tint(Theme.accent)
 
                         }
 
@@ -102,6 +71,7 @@ struct MangaDetailView: View {
         .navigationTitle(manga.title)
 
         .navigationBarTitleDisplayMode(.inline)
+        .listStyle(.insetGrouped)
 
         .navigationDestination(item: $openChapter) { ReaderView(chapter: $0) }
 
@@ -139,22 +109,51 @@ struct MangaDetailView: View {
 
     }
 
-    @ViewBuilder private var cover: some View {
+    private var coverWidth: CGFloat { sizeClass == .regular ? 150 : 110 }
 
-        if let data = manga.coverData, let image = UIImage(data: data) {
-
-            Image(uiImage: image).resizable().scaledToFill()
-
-                .frame(width: 90, height: 130).clipped()
-
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-        } else {
-
-            RoundedRectangle(cornerRadius: 8).fill(.gray.opacity(0.3)).frame(width: 90, height: 130)
-
+    private var hero: some View {
+        HStack(alignment: .bottom, spacing: 16) {
+            CoverView(data: manga.coverData, title: manga.title)
+                .frame(width: coverWidth)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(manga.title).font(.title2.bold()).lineLimit(4)
+                HStack(spacing: 6) {
+                    Pill(text: "\(manga.chapters.count) chapters", systemImage: "books.vertical")
+                    if manga.unreadCount > 0 { Pill(text: "\(manga.unreadCount) unread") }
+                }
+                if manga.progress > 0 {
+                    ProgressView(value: manga.progress).tint(Theme.accent)
+                }
+                if let resume = manga.resumeChapter {
+                    Button {
+                        openChapter = resume
+                    } label: {
+                        Label(resumeLabel, systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .accessibilityIdentifier("resumeReading")
+                }
+            }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { backdrop }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius + 6, style: .continuous))
+        .padding(.horizontal, 16).padding(.vertical, 8)
+    }
 
+    @ViewBuilder private var backdrop: some View {
+        ZStack {
+            if let data = manga.coverData, let image = UIImage(data: data) {
+                Image(uiImage: image).resizable().scaledToFill().blur(radius: 30).scaleEffect(1.3)
+            } else {
+                Theme.accent.opacity(0.3)
+            }
+            Rectangle().fill(.regularMaterial)
+        }
+        .clipped()
     }
 
     private func toggleRead(_ chapter: Chapter) {
@@ -200,46 +199,34 @@ struct MangaDetailView: View {
 }
 
 private struct ChapterRow: View {
-
     let chapter: Chapter
 
     var body: some View {
-
-        HStack {
-
+        HStack(spacing: 12) {
+            status.frame(width: 22, height: 22)
             VStack(alignment: .leading, spacing: 2) {
-
                 Text(chapter.name).lineLimit(2)
-
                     .foregroundStyle(chapter.isRead ? .secondary : .primary)
-
                 if chapter.inProgress {
-
                     Text("Page \(chapter.lastPage + 1) of \(chapter.pageCount)")
-
-                        .font(.caption).foregroundStyle(.blue)
-
+                        .font(.caption).foregroundStyle(Theme.accent)
                 } else {
-
                     Text("\(chapter.pageCount) pages").font(.caption).foregroundStyle(.secondary)
-
                 }
-
             }
-
             Spacer()
-
-            if chapter.isRead {
-
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.secondary)
-
-            }
-
+            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
         }
-
         .contentShape(Rectangle())
-
     }
 
+    @ViewBuilder private var status: some View {
+        if chapter.isRead {
+            Image(systemName: "checkmark.circle.fill").foregroundStyle(.secondary).font(.title3)
+        } else if chapter.inProgress {
+            ProgressRing(progress: Double(chapter.lastPage) / Double(max(chapter.pageCount, 1)))
+        } else {
+            Circle().fill(Theme.accent).frame(width: 9, height: 9)
+        }
+    }
 }
-

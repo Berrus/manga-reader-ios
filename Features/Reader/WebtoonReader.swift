@@ -74,6 +74,8 @@ private struct WebtoonPage: View {
                     .accessibilityLabel("Comic page")
                     .accessibilityIdentifier("webtoonImage")
 
+                    .frame(maxWidth: ReaderViewModel.webtoonMaxWidth)
+
                     .frame(maxWidth: .infinity)
 
             } else if vm.failedPages.contains(page) {

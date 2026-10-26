@@ -64,6 +64,19 @@ final class Manga {
 
     var unreadCount: Int { chapters.filter { !$0.isRead }.count }
 
+    /// 0...1 share of chapters finished, with the chapter in progress counted partially.
+    var progress: Double {
+        guard !chapters.isEmpty else { return 0 }
+        let total = chapters.reduce(0.0) { sum, chapter in
+            if chapter.isRead { return sum + 1 }
+            guard chapter.pageCount > 0 else { return sum }
+            return sum + Double(chapter.lastPage) / Double(chapter.pageCount)
+        }
+        return total / Double(chapters.count)
+    }
+
+    var hasStarted: Bool { chapters.contains { $0.isRead || $0.lastPage > 0 } }
+
     /// Resume a partly read chapter before starting an unread one.
 
     var resumeChapter: Chapter? {

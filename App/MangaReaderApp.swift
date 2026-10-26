@@ -23,15 +23,24 @@ struct MangaReaderApp: App {
 
     var body: some Scene {
         WindowGroup {
-            LibraryView()
-                .task {
-                    #if DEBUG
-                    if ProcessInfo.processInfo.environment["UI_TESTING"] == "1" {
-                        do { try await DemoLibrary.seed(context: container.mainContext) }
-                        catch { assertionFailure("Demo import failed: \(error)") }
-                    }
-                    #endif
+            TabView {
+                LibraryView()
+                    .tabItem { Label("Library", systemImage: "books.vertical") }
+                BrowseView()
+                    .tabItem { Label("Browse", systemImage: "globe") }
+                SettingsView()
+                    .tabItem { Label("Settings", systemImage: "gearshape") }
+            }
+            .environment(SourceStore.shared)
+            .tint(Theme.accent)
+            .task {
+                #if DEBUG
+                if ProcessInfo.processInfo.environment["UI_TESTING"] == "1" {
+                    do { try await DemoLibrary.seed(context: container.mainContext) }
+                    catch { assertionFailure("Demo import failed: \(error)") }
                 }
+                #endif
+            }
         }
         .modelContainer(container)
     }
