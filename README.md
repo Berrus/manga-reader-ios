@@ -72,6 +72,7 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Local CBZ/ZIP import with explicit CBZ file-type registration.
 - Library with cover cards, a Continue reading shelf, title search, sorting (recent, title, unread), an unread filter, progress bars, chapter lists and manual read/unread.
 - Series page with a cover header, progress and chapter status indicators.
+- Four app icons (Indigo default, Ink, Coral, Light) chosen in Settings on iPhone and iPad; sources are in `design/`.
 - Optional, off-by-default custom sources (Settings tab) with a Browse tab; see docs/SOURCES.md.
 - Resume a partly read chapter before starting an unread one.
 - Paged left-to-right/right-to-left and vertical webtoon readers.

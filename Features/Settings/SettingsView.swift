@@ -12,6 +12,10 @@ struct SettingsView: View {
         @Bindable var store = store
         NavigationStack {
             Form {
+                if UIApplication.shared.supportsAlternateIcons {
+                    Section("App icon") { AppIconPicker() }
+                }
+
                 Section {
                     Toggle("Enable custom sources", isOn: $store.enabled)
                 } header: {
