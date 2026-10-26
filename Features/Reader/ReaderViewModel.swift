@@ -5,7 +5,7 @@ enum ImageFit: String { case screen, width }
 @MainActor @Observable
 final class ReaderViewModel {
     let chapter: Chapter
-    private var archive: CBZArchive?
+    private var archive: (any PageProvider)?
     @ObservationIgnored private let cache = NSCache<NSString, UIImage>()
     @ObservationIgnored private var inFlight: [String: Task<UIImage?, Never>] = [:]
     @ObservationIgnored private var generation = 0
@@ -29,7 +29,14 @@ final class ReaderViewModel {
 
     func open() {
         guard archive == nil, loadError == nil else { return }
-        do { archive = try CBZArchive(url: chapter.fileURL) }
+        do {
+            if chapter.isRemote {
+                guard chapter.isDownloaded else { throw CBZError.unreadable }
+                archive = try DirectoryPages(directory: chapter.downloadDirectory)
+            } else {
+                archive = try CBZArchive(url: chapter.fileURL)
+            }
+        }
         catch { loadError = "Couldn't open this file." }
     }
 

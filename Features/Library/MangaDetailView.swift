@@ -170,7 +170,7 @@ struct MangaDetailView: View {
 
     private func delete(_ chapter: Chapter) {
 
-        try? FileManager.default.removeItem(at: chapter.fileURL)
+        chapter.removeFiles()
 
         context.delete(chapter)
 

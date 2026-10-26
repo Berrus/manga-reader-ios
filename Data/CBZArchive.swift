@@ -4,7 +4,7 @@ import ZIPFoundation
 
 enum CBZError: Error { case noImages, unreadable, pageOutOfRange }
 
-actor CBZArchive {
+actor CBZArchive: PageProvider {
 
     private let archive: Archive
 

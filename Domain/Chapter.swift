@@ -23,6 +23,9 @@ final class Chapter {
     var addedAt: Date
 
     var manga: Manga?
+    /// Set for chapters of remote series; pages live in `downloadDirectory` once downloaded.
+    var remoteID: String?
+    var isDownloaded: Bool = false
 
     init(name: String, number: Double, fileName: String, pageCount: Int) {
 
@@ -45,6 +48,20 @@ final class Chapter {
     }
 
     var fileURL: URL { LibraryImporter.booksDirectory.appendingPathComponent(fileName) }
+
+    var isRemote: Bool { remoteID != nil }
+
+    var downloadDirectory: URL { DownloadStorage.directory.appendingPathComponent(id.uuidString, isDirectory: true) }
+
+    /// Deletes this chapter's files from disk. Safe for both imported CBZs and downloads.
+    func removeFiles() {
+        if isRemote {
+            try? FileManager.default.removeItem(at: downloadDirectory)
+            isDownloaded = false
+        } else if !fileName.isEmpty {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+    }
 
     var inProgress: Bool { !isRead && lastPage > 0 }
 

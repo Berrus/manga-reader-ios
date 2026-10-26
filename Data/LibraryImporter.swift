@@ -106,7 +106,7 @@ enum LibraryImporter {
 
         for chapter in manga.chapters {
 
-            try? FileManager.default.removeItem(at: chapter.fileURL)
+            chapter.removeFiles()
 
         }
 
