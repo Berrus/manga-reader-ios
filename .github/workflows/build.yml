@@ -8,6 +8,11 @@ permissions:
   contents: read
 jobs:
   test:
+    name: ${{ matrix.device }} tests
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPhone, iPad]
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -16,9 +21,9 @@ jobs:
         run: brew install xcodegen
       - name: Generate Xcode project
         run: xcodegen generate
-      - name: Choose an available iPhone simulator
+      - name: Choose an available ${{ matrix.device }} simulator
         run: |
-          DEVICE_ID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); phones=[v["udid"] for k,values in d["devices"].items() if "iOS" in k for v in values if v["isAvailable"] and v["name"].startswith("iPhone")]; assert phones, "No iPhone simulator installed"; print(phones[0])')
+          DEVICE_ID=$(xcrun simctl list devices available --json | python3 -c 'import json,sys; d=json.load(sys.stdin); phones=[v["udid"] for k,values in d["devices"].items() if "iOS" in k for v in values if v["isAvailable"] and v["name"].startswith("${{ matrix.device }}")]; assert phones, "No matching simulator installed"; print(phones[0])')
           echo "SIMULATOR_ID=$DEVICE_ID" >> "$GITHUB_ENV"
           xcrun simctl boot "$DEVICE_ID"
           xcrun simctl bootstatus "$DEVICE_ID" -b
@@ -30,6 +35,9 @@ jobs:
             -project MangaReader.xcodeproj -scheme MangaReader \
             -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
             -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 90 \
+            -maximum-test-execution-time-allowance 120 \
             -derivedDataPath build \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO | tee test.log
@@ -45,7 +53,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: simulator-screenshots
+          name: simulator-screenshots-${{ matrix.device }}
           path: artifacts/screenshots
           if-no-files-found: warn
           retention-days: 14
@@ -53,7 +61,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ matrix.device }}
           path: |
             TestResults.xcresult
             artifacts/test-summary.json

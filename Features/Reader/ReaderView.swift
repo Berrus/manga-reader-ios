@@ -30,7 +30,11 @@ struct ReaderView: View {
 
     var body: some View {
 
-        ReaderContent(
+        Group {
+            if chapter.isRemote && !chapter.isDownloaded {
+                RemoteChapterView(chapter: chapter)
+            } else {
+                ReaderContent(
 
             chapter: chapter,
 
@@ -40,6 +44,8 @@ struct ReaderView: View {
 
         )
 
+            }
+        }
         .id(chapter.id)
 
     }
@@ -61,6 +67,11 @@ private struct ReaderContent: View {
     @State private var showControls = true
 
     @Environment(\.displayScale) private var displayScale
+    @AppStorage("reader.background") private var backgroundRaw = ReaderBackground.black.rawValue
+    @AppStorage("reader.tapZones") private var tapZones = true
+    @AppStorage("reader.keepAwake") private var keepAwake = true
+
+    private var background: ReaderBackground { ReaderBackground(rawValue: backgroundRaw) ?? .black }
 
     init(chapter: Chapter, onPrevious: (() -> Void)?, onNext: (() -> Void)?) {
 
@@ -98,7 +109,7 @@ private struct ReaderContent: View {
 
         ZStack {
 
-            Color.black.ignoresSafeArea()
+            background.color.ignoresSafeArea()
 
             if let error = vm.loadError {
 
@@ -110,7 +121,7 @@ private struct ReaderContent: View {
 
                 case .paged:
 
-                    PagedReader(vm: vm, current: $current, isRTL: isRTL, onTap: toggleControls)
+                    PagedReader(vm: vm, current: $current, isRTL: isRTL, onTap: handleTap)
 
                 case .webtoon:
 
@@ -226,6 +237,11 @@ private struct ReaderContent: View {
 
                     }
 
+                Picker("Background", selection: $backgroundRaw) {
+                        ForEach(ReaderBackground.allCases) { Text($0.label).tag($0.rawValue) }
+                    }
+                    Toggle("Tap edges to turn pages", isOn: $tapZones)
+                    Toggle("Keep screen on", isOn: $keepAwake)
                 } label: { Image(systemName: "slider.horizontal.3") }
                 .accessibilityLabel("Reader settings")
 
@@ -260,6 +276,9 @@ private struct ReaderContent: View {
         }
 
         .preferredColorScheme(.dark)
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = keepAwake }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        .onChange(of: keepAwake) { _, value in UIApplication.shared.isIdleTimerDisabled = value }
         .statusBarHidden(!showControls)
         .background { keyboardShortcuts }
         .background {
@@ -287,12 +306,19 @@ private struct ReaderContent: View {
     }
 
     private func updateViewport(_ size: CGSize) {
-        vm.viewport = size
-        vm.displayScale = displayScale
+        vm.configureViewport(size, scale: displayScale)
     }
 
     private func step(_ delta: Int) {
         current = min(max(current + delta, 0), max(vm.pageCount - 1, 0))
+    }
+
+    /// Edge taps turn pages (following reading direction); the centre toggles the controls.
+    private func handleTap(_ x: CGFloat) {
+        guard tapZones else { toggleControls(); return }
+        if x < 0.25 { step(isRTL ? 1 : -1) }
+        else if x > 0.75 { step(isRTL ? -1 : 1) }
+        else { toggleControls() }
     }
 
     private func toggleControls() {
@@ -313,7 +339,7 @@ private struct PagedReader: View {
 
     let isRTL: Bool
 
-    let onTap: () -> Void
+    let onTap: (CGFloat) -> Void
 
     /// Maps logical page <-> TabView position. The mapping is its own inverse.
 
@@ -349,7 +375,7 @@ private struct PageView: View {
 
     let page: Int
 
-    let onTap: () -> Void
+    let onTap: (CGFloat) -> Void
 
     @State private var image: UIImage?
     @State private var retryID = UUID()
@@ -376,13 +402,18 @@ private struct PageView: View {
 
                     .contentShape(Rectangle())
 
-                    .onTapGesture(perform: onTap)
+                    .onTapGesture { onTap(0.5) }
 
             }
 
         }
 
-        .task(id: "\(page)-\(retryID)") { image = await vm.image(at: page, fit: .screen) }
+        .task(id: "\(page)-\(retryID)-\(vm.imageRevision)") {
+            let revision = vm.imageRevision
+            image = nil
+            let loaded = await vm.image(at: page, fit: .screen)
+            if !Task.isCancelled && revision == vm.imageRevision { image = loaded }
+        }
 
     }
 

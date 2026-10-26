@@ -29,6 +29,14 @@ enum DemoLibrary {
                 manga.title = title
                 manga.chapters.first?.name = "Chapter 1 · The journey begins"
                 manga.direction = .leftToRight
+                if title == "Moonlit Express" && ProcessInfo.processInfo.environment["UI_TEST_REMOTE_NEXT"] == "1" {
+                    manga.sourceID = "unavailable.fixture"
+                    manga.remoteID = "fixture-book"
+                    let next = Chapter(name: "Online chapter", number: 2, fileName: "", pageCount: 0)
+                    next.remoteID = "remote-next"
+                    context.insert(next)
+                    next.manga = manga
+                }
                 if ProcessInfo.processInfo.environment["READER_MODE"] == "webtoon" {
                     manga.readerMode = .webtoon
                 }

@@ -11,13 +11,21 @@ targets:
   MangaReader:
     type: application
     platform: iOS
-    sources: [App, Core, Domain, Data, Features, Sources, Resources]
+    sources: [App, Core, Domain, Data, Features, Sources, Tracking, Downloads, Resources]
     dependencies:
       - package: ZIPFoundation
     info:
       path: Info.plist
       properties:
         CFBundleDisplayName: Folio Reader
+        AniListClientID: $(ANILIST_CLIENT_ID)
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).refresh
+        UIBackgroundModes:
+          - fetch
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Folio Reader connects to media servers on your local network that you add.
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -48,6 +56,7 @@ targets:
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
         PRODUCT_BUNDLE_IDENTIFIER: com.example.FolioReader
+        ANILIST_CLIENT_ID: ""   # your AniList API client ID (see README > Tracking)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-Ink AppIcon-Coral AppIcon-Light"
         SWIFT_VERSION: "5.9"

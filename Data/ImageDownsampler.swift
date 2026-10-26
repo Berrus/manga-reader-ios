@@ -12,6 +12,17 @@ enum ImageDownsampler {
 
         guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
 
+        guard maxPixel.isFinite, maxPixel > 0,
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let w = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.doubleValue,
+              let h = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.doubleValue,
+              w > 0, h > 0, w.isFinite, h.isFinite else { return nil }
+        // Bound the bitmap even for very tall strips or deceptive image dimensions.
+        let requested = min(Double(maxPixel), max(w, h))
+        let ratio = min(1, requested / max(w, h))
+        let pixels = w * h * ratio * ratio
+        let budgetScale = pixels > 16_000_000 ? sqrt(16_000_000 / pixels) : 1
+        let boundedPixel = max(1, requested * budgetScale)
         let options = [
 
             kCGImageSourceCreateThumbnailFromImageAlways: true,
@@ -20,7 +31,7 @@ enum ImageDownsampler {
 
             kCGImageSourceCreateThumbnailWithTransform: true,
 
-            kCGImageSourceThumbnailMaxPixelSize: maxPixel
+            kCGImageSourceThumbnailMaxPixelSize: boundedPixel
 
         ] as CFDictionary
 

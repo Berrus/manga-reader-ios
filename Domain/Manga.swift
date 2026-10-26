@@ -29,6 +29,14 @@ final class Manga {
     var readerModeRaw: String
 
     @Attribute(.externalStorage) var coverData: Data?
+    var categoryID: UUID?
+    var lastReadAt: Date?
+    var lastReadChapterName: String?
+    /// Set for series added from Browse: which source and which id on that source.
+    var sourceID: String?
+    var remoteID: String?
+    var autoDownload: Bool = false
+    var lastUpdatedAt: Date?
 
     @Relationship(deleteRule: .cascade, inverse: \Chapter.manga)
 
@@ -74,6 +82,11 @@ final class Manga {
         }
         return total / Double(chapters.count)
     }
+
+    /// Highest chapter number finished. Numbers are guessed from file names, so this is approximate.
+    var lastChapterRead: Double { chapters.filter(\.isRead).map(\.number).max() ?? 0 }
+
+    var isRemote: Bool { sourceID != nil && remoteID != nil }
 
     var hasStarted: Bool { chapters.contains { $0.isRead || $0.lastPage > 0 } }
 
