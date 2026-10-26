@@ -300,8 +300,6 @@ private struct PagedReader: View {
 
         .tabViewStyle(.page(indexDisplayMode: .never))
 
-        .ignoresSafeArea()
-
     }
 
 }
