@@ -24,7 +24,7 @@ Known issues include webtoon memory use and approximate jumps, zoom gesture conf
 
 ## Constraints
 
-No bundled scraper lists, adult-content integrations, downloaded executable code, or JavaScriptCore in v1. Planned integrations: user-owned Komga/Kavita/OPDS servers and the official MangaDex API. Review current service terms and App Store requirements before release.
+No bundled scraper lists or adult-content integrations. Optional, off-by-default custom sources run sandboxed JavaScript (JavaScriptCore) added by the user; see docs/SOURCES.md, including the App Store risk. Planned integrations: user-owned Komga/Kavita/OPDS servers and the official MangaDex API. Review current service terms and App Store requirements before release.
 
 ## Licensing
 

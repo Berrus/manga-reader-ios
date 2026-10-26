@@ -11,7 +11,7 @@ targets:
   MangaReader:
     type: application
     platform: iOS
-    sources: [App, Domain, Data, Features]
+    sources: [App, Domain, Data, Features, Sources]
     dependencies:
       - package: ZIPFoundation
     info:

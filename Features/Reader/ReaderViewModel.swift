@@ -21,7 +21,7 @@ final class ReaderViewModel {
     @ObservationIgnored var displayScale: CGFloat = 2
 
     /// Webtoon pages stop growing past this width so iPad/Mac don't blow strips up edge to edge.
-    static let webtoonMaxWidth: CGFloat = 900
+    nonisolated static let webtoonMaxWidth: CGFloat = 900
 
     var pageCount: Int { chapter.pageCount }
 
