@@ -20,7 +20,7 @@ struct MangaDexSource: Source {
             .init(name: "includes[]", value: "cover_art"),
             .init(name: "availableTranslatedLanguage[]", value: "en")
         ]
-        items += Self.ratings.map { .init(name: "contentRating[]", value: $0) }
+        items += Self.ratings.map { URLQueryItem(name: "contentRating[]", value: $0) }
         if query.isEmpty { items.append(.init(name: "order[followedCount]", value: "desc")) }
         else {
             items.append(.init(name: "title", value: query))
@@ -52,7 +52,7 @@ struct MangaDexSource: Source {
                 .init(name: "translatedLanguage[]", value: "en"),
                 .init(name: "order[chapter]", value: "asc")
             ]
-            items += Self.ratings.map { .init(name: "contentRating[]", value: $0) }
+            items += Self.ratings.map { URLQueryItem(name: "contentRating[]", value: $0) }
             let page: List<ChapterItem> = try await get("/manga/\(manga.id)/feed", items)
             all += page.data
             offset += page.data.count

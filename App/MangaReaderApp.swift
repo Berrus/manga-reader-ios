@@ -26,6 +26,8 @@ struct MangaReaderApp: App {
             TabView {
                 LibraryView()
                     .tabItem { Label("Library", systemImage: "books.vertical") }
+                HistoryView()
+                    .tabItem { Label("History", systemImage: "clock") }
                 BrowseView()
                     .tabItem { Label("Browse", systemImage: "globe") }
                 SettingsView()

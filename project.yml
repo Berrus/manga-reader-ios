@@ -19,6 +19,9 @@ targets:
       properties:
         CFBundleDisplayName: Folio Reader
         AniListClientID: $(ANILIST_CLIENT_ID)
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSLocalNetworkUsageDescription: Folio Reader connects to media servers on your local network that you add.
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

@@ -8,11 +8,30 @@ struct SettingsView: View {
     @State private var pending: JSSourceManifest?
     @State private var errorMessage: String?
     @State private var isFetching = false
+    @Environment(\.modelContext) private var context
+    @State private var exportDocument: BackupDocument?
+    @State private var showExporter = false
+    @State private var showRestorer = false
+    @State private var infoMessage: String?
 
     var body: some View {
         @Bindable var store = store
         NavigationStack {
             Form {
+                Section("Library") {
+                    NavigationLink("Categories") { CategoriesView() }
+                    NavigationLink("Servers") { ServersView() }
+                }
+
+                Section {
+                    Button("Export backup…", systemImage: "square.and.arrow.up") { exportBackup() }
+                    Button("Restore backup…", systemImage: "square.and.arrow.down") { showRestorer = true }
+                } header: {
+                    Text("Backup")
+                } footer: {
+                    Text("Saves categories, reading progress and tracker links (not the comic files). Restore after re-importing your files; series are matched by title.")
+                }
+
                 if UIApplication.shared.supportsAlternateIcons {
                     Section("App icon") { AppIconPicker() }
                 }
@@ -61,6 +80,17 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .fileExporter(isPresented: $showExporter, document: exportDocument, contentType: .json,
+                          defaultFilename: "FolioReader-backup") { result in
+                if case .failure(let error) = result { errorMessage = error.localizedDescription }
+            }
+            .fileImporter(isPresented: $showRestorer, allowedContentTypes: [.json]) { result in
+                restoreBackup(result)
+            }
+            .alert("Backup", isPresented: Binding(get: { infoMessage != nil },
+                                                  set: { if !$0 { infoMessage = nil } })) {
+                Button("OK") { infoMessage = nil }
+            } message: { Text(infoMessage ?? "") }
             .onChange(of: store.enabled) { _, _ in store.persistEnabled() }
             .alert("Add source", isPresented: $showAdd) {
                 TextField("https://…", text: $address)
@@ -85,6 +115,28 @@ struct SettingsView: View {
                 Button("OK") { errorMessage = nil }
             } message: { Text(errorMessage ?? "") }
             .overlay { if isFetching { ProgressView() } }
+        }
+    }
+
+    private func exportBackup() {
+        do {
+            exportDocument = BackupDocument(data: try BackupService.encode(try BackupService.snapshot(context: context)))
+            showExporter = true
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func restoreBackup(_ result: Result<URL, Error>) {
+        do {
+            let url = try result.get()
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            let file = try BackupService.decode(try Data(contentsOf: url))
+            let summary = try BackupService.restore(file, into: context)
+            infoMessage = "Restored \(summary.series) series, \(summary.chapters) chapters updated, \(summary.categories) new categories, \(summary.links) tracker links."
+        } catch {
+            errorMessage = "Couldn't restore: \(error.localizedDescription)"
         }
     }
 

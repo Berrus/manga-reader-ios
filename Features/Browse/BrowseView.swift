@@ -2,35 +2,55 @@ import SwiftUI
 
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
+    private var servers: ServerStore { .shared }
 
     var body: some View {
         NavigationStack {
-            Group {
-                if !store.enabled {
-                    ContentUnavailableView("Custom sources are off", systemImage: "network.slash",
-                        description: Text("This app includes no sources. Advanced users can turn on custom sources in Settings."))
-                } else if store.manifests.isEmpty {
-                    ContentUnavailableView("No sources installed", systemImage: "tray",
-                        description: Text("Add a source you trust in Settings."))
-                } else {
-                    List(store.manifests) { manifest in
-                        if let source = store.source(for: manifest) {
-                            NavigationLink {
-                                SourceSearchView(source: source)
-                            } label: {
-                                VStack(alignment: .leading) {
-                                    Text(manifest.name)
-                                    Text("v\(manifest.version)").font(.caption).foregroundStyle(.secondary)
-                                }
+            List {
+                Section {
+                    row(MangaDexSource(), subtitle: "Official API · Data from MangaDex")
+                } header: {
+                    Text("Online")
+                }
+
+                if !servers.servers.isEmpty {
+                    Section("Your servers") {
+                        ForEach(servers.servers) { server in
+                            if let source = servers.source(for: server) {
+                                row(source, subtitle: server.url)
+                            } else {
+                                Label("\(server.name): check the address in Settings", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.secondary)
                             }
-                        } else {
-                            Label("\(manifest.name) failed to load", systemImage: "exclamationmark.triangle")
-                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if store.enabled && !store.manifests.isEmpty {
+                    Section("Custom sources") {
+                        ForEach(store.manifests) { manifest in
+                            if let source = store.source(for: manifest) {
+                                row(source, subtitle: "v\(manifest.version)")
+                            } else {
+                                Label("\(manifest.name) failed to load", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
             }
             .navigationTitle("Browse")
+        }
+    }
+
+    private func row(_ source: any Source, subtitle: String) -> some View {
+        NavigationLink {
+            SourceSearchView(source: source)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(source.name)
+                Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
         }
     }
 }
@@ -49,11 +69,7 @@ struct SourceSearchView: View {
                 SourceMangaView(source: source, manga: manga)
             } label: {
                 HStack(spacing: 12) {
-                    AsyncImage(url: manga.coverURL.flatMap(URL.init(string:))) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Color.gray.opacity(0.3)
-                    }
+                    RemoteImage(url: manga.coverURL.flatMap(URL.init(string:)), headers: source.imageHeaders)
                     .frame(width: 44, height: 64)
                     .clipShape(RoundedRectangle(cornerRadius: 4))
                     Text(manga.title).lineLimit(2)
@@ -200,7 +216,7 @@ private struct RemotePageView: View {
     }
 
     private func load() async {
-        guard let url = URL(string: page.url), url.scheme == "https" else { failed = true; return }
+        guard let url = URL(string: page.url), let scheme = url.scheme, ["https", "http"].contains(scheme) else { failed = true; return }
         var request = URLRequest(url: url, timeoutInterval: 30)
         for (key, value) in page.headers ?? [:] { request.setValue(value, forHTTPHeaderField: key) }
         let width = ReaderViewModel.webtoonMaxWidth * displayScale
