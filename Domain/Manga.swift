@@ -75,6 +75,9 @@ final class Manga {
         return total / Double(chapters.count)
     }
 
+    /// Highest chapter number finished. Numbers are guessed from file names, so this is approximate.
+    var lastChapterRead: Double { chapters.filter(\.isRead).map(\.number).max() ?? 0 }
+
     var hasStarted: Bool { chapters.contains { $0.isRead || $0.lastPage > 0 } }
 
     /// Resume a partly read chapter before starting an unread one.

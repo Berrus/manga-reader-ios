@@ -93,7 +93,11 @@ final class ReaderViewModel {
         guard pageCount > 0 else { return }
         chapter.lastPage = min(max(page, 0), pageCount - 1)
         if markRead && (0..<pageCount).contains(page) && page == pageCount - 1 {
+            let wasRead = chapter.isRead
             chapter.isRead = true
+            if !wasRead, let manga = chapter.manga {
+                Task { await TrackerSync.shared.syncAfterReading(manga) }
+            }
         }
     }
 }

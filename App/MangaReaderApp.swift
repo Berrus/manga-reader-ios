@@ -7,7 +7,7 @@ struct MangaReaderApp: App {
 
     init() {
         do {
-            let schema = Schema([Manga.self, Chapter.self])
+            let schema = Schema([Manga.self, Chapter.self, TrackLink.self])
             #if DEBUG
             let inMemory = ProcessInfo.processInfo.environment["UI_TESTING"] == "1"
             #else
@@ -33,6 +33,7 @@ struct MangaReaderApp: App {
             }
             .environment(SourceStore.shared)
             .tint(Theme.accent)
+            .task { await TrackerSync.shared.syncAll(context: container.mainContext) }
             .task {
                 #if DEBUG
                 if ProcessInfo.processInfo.environment["UI_TESTING"] == "1" {
