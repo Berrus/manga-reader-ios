@@ -1,0 +1,10 @@
+Manga Reader iOS
+
+The project handoff cites Tachiyomi, Mihon, and Komikku as feature and design references, and Tachimanga as a feature reference.
+
+Tachiyomi / Mihon / Komikku: Apache License 2.0, per the handoff. This notice records the references; it does not claim their source code has been copied or that their licenses have been independently verified.
+
+Before incorporating third-party code, verify the applicable repository LICENSE, preserve its copyright and notices, and include required license text. Do not copy Tachimanga code without verifying its license.
+
+ZIPFoundation is an external Swift Package dependency. Preserve its license and notices when distributing it.
+
