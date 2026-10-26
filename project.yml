@@ -11,7 +11,7 @@ targets:
   MangaReader:
     type: application
     platform: iOS
-    sources: [App, Core, Domain, Data, Features, Sources]
+    sources: [App, Core, Domain, Data, Features, Sources, Resources]
     dependencies:
       - package: ZIPFoundation
     info:
@@ -48,6 +48,7 @@ targets:
         DERIVE_MACCATALYST_PRODUCT_BUNDLE_IDENTIFIER: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
         PRODUCT_BUNDLE_IDENTIFIER: com.example.FolioReader
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
   MangaReaderTests:
