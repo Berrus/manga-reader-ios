@@ -11,24 +11,29 @@ struct WebtoonReader: View {
     let scrollSpeed: Double
 
     @State private var scrolledID: Int?
+    @State private var zoom: CGFloat = 1
+    @State private var zoomAtPinchStart: CGFloat = 1
+
+    /// shortcut: zoomed pages are the normal-resolution bitmap scaled up (a little soft above 2x); decode at a higher resolution if that bothers readers.
+    private static let maxZoom: CGFloat = 3
 
     var body: some View {
+        GeometryReader { geo in
+            reader(width: min(geo.size.width, ReaderViewModel.webtoonMaxWidth) * zoom, viewport: geo.size.width)
+        }
+    }
 
-        ScrollView {
-
+    /// Pages are as wide as the screen at 1x; pinching widens them and the view scrolls sideways.
+    private func reader(width: CGFloat, viewport: CGFloat) -> some View {
+        ScrollView([.vertical, .horizontal]) {
             LazyVStack(spacing: 0) {
-
                 ForEach(0..<vm.pageCount, id: \.self) { page in
-
-                    WebtoonPage(vm: vm, page: page)
-
+                    WebtoonPage(vm: vm, page: page, width: width)
                 }
-
             }
-
+            .frame(minWidth: viewport)
             .scrollTargetLayout()
             .background(ScrollAutoAdvance(isRunning: $autoScroll, pointsPerSecond: scrollSpeed))
-
         }
 
         .scrollPosition(id: $scrolledID, anchor: .top)
@@ -47,18 +52,23 @@ struct WebtoonReader: View {
 
         }
 
+        .simultaneousGesture(
+            MagnifyGesture()
+                .onChanged { zoom = min(max(zoomAtPinchStart * $0.magnification, 1), Self.maxZoom) }
+                .onEnded { _ in zoomAtPinchStart = zoom }
+        )
+        .onTapGesture(count: 2) {
+            withAnimation { zoom = zoom > 1 ? 1 : 2 }
+            zoomAtPinchStart = zoom
+        }
         .onTapGesture(perform: onTap)
-
-
     }
-
 }
 
 private struct WebtoonPage: View {
-
     let vm: ReaderViewModel
-
     let page: Int
+    let width: CGFloat
 
     @State private var image: UIImage?
     @State private var retryID = UUID()
@@ -77,9 +87,7 @@ private struct WebtoonPage: View {
                     .accessibilityLabel("Comic page")
                     .accessibilityIdentifier("webtoonImage")
 
-                    .frame(maxWidth: ReaderViewModel.webtoonMaxWidth)
-
-                    .frame(maxWidth: .infinity)
+                    .frame(width: width)
 
             } else if vm.failedPages.contains(page) {
                 VStack(spacing: 12) {
@@ -89,8 +97,7 @@ private struct WebtoonPage: View {
             } else {
 
                 Color.black
-
-                    .frame(height: 500)
+                    .frame(width: width, height: 500)
 
                     .overlay(ProgressView().tint(.white))
 

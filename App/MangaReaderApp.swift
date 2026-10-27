@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct MangaReaderApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("appearance.mode") private var appearanceMode = "system"
     private let container: ModelContainer
@@ -46,10 +47,12 @@ struct MangaReaderApp: App {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task {
+                        await ICloudSync.shared.syncIfNeeded(context: container.mainContext)
                         await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
                         DownloadManager.shared.resume(context: container.mainContext)
                     }
                 } else if phase == .background {
+                    PrivacyLock.shared.lock()
                     BackgroundRefresh.schedule()
                 }
             }
@@ -58,7 +61,10 @@ struct MangaReaderApp: App {
             }
             .task {
                 DownloadManager.shared.resume(context: container.mainContext)
+                BackgroundPageFetcher.purgeStaleCache()
                 AniListAuth.shared.restore()
+                MyAnimeListAuth.shared.restore()
+                KitsuAuth.shared.restore()
                 await TrackerSync.shared.syncAll(context: container.mainContext)
                 await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
             }

@@ -27,7 +27,7 @@ struct MangaDetailView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
-            if AniListAuth.shared.isConnected {
+            if !TrackerService.connected.isEmpty {
                 TrackingSection(manga: manga)
             }
 

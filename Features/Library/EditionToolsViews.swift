@@ -47,7 +47,11 @@ private struct MergedEditionsView: View {
 
 struct MergeEntriesView: View {
     let manga: Manga
-    @Query(sort: \Manga.title) private var library: [Manga]
+    @Query(sort: \Manga.title) private var allLibrary: [Manga]
+    @Query private var categories: [Category]
+    private var library: [Manga] {
+        PrivacyFilter.visible(allLibrary, categories: categories, unlocked: PrivacyLock.shared.isUnlocked)
+    }
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var selected = Set<UUID>()
@@ -91,7 +95,11 @@ struct MergeEntriesView: View {
 
 struct LibraryRecommendationsView: View {
     let manga: Manga
-    @Query private var library: [Manga]
+    @Query private var allLibrary: [Manga]
+    @Query private var categories: [Category]
+    private var library: [Manga] {
+        PrivacyFilter.visible(allLibrary, categories: categories, unlocked: PrivacyLock.shared.isUnlocked)
+    }
     var body: some View {
         List {
             Section {

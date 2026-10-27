@@ -37,7 +37,7 @@ final class ReaderViewModel {
                 guard chapter.isDownloaded else { throw CBZError.unreadable }
                 archive = try DirectoryPages(directory: chapter.downloadDirectory)
             } else {
-                archive = try CBZArchive(url: chapter.fileURL)
+                archive = try ComicArchive.open(url: chapter.fileURL).provider
             }
         }
         catch { loadError = "Couldn't open this file." }

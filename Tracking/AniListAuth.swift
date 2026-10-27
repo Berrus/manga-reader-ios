@@ -83,7 +83,7 @@ final class AniListAuth {
     }
 }
 
-private final class PresentationAnchor: NSObject, ASWebAuthenticationPresentationContextProviding {
+final class PresentationAnchor: NSObject, ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
         UIApplication.shared.connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.keyWindow }

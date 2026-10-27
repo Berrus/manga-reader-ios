@@ -4,6 +4,10 @@ import SwiftData
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
     private var servers: ServerStore { .shared }
+    private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind != .suwayomi } }
+    private var suwayomiServers: [ServerConfig] {
+        DistributionPolicy.allowsSuwayomi ? servers.servers.filter { $0.kind == .suwayomi } : []
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,9 +23,9 @@ struct BrowseView: View {
                 }
                 }
 
-                if !servers.servers.isEmpty {
+                if !komgaServers.isEmpty {
                     Section("Your servers") {
-                        ForEach(servers.servers) { server in
+                        ForEach(komgaServers) { server in
                             if let source = servers.source(for: server) {
                                 row(source, subtitle: server.url)
                             } else {
@@ -32,6 +36,24 @@ struct BrowseView: View {
                     }
                 }
 
+                if !suwayomiServers.isEmpty {
+                    Section {
+                        ForEach(suwayomiServers) { server in
+                            NavigationLink {
+                                SuwayomiSourcesView(server: server)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(server.name)
+                                    Text(server.url).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Suwayomi servers")
+                    } footer: {
+                        Text("Content comes from the extensions installed on your own server.")
+                    }
+                }
                 if DistributionPolicy.allowsCustomSources && store.enabled && !store.manifests.isEmpty {
                     Section("Custom sources") {
                         ForEach(store.manifests) { manifest in
@@ -185,6 +207,7 @@ struct SourceMangaView: View {
         _existing = Query(filter: #Predicate<Manga> { $0.sourceID == sourceID && $0.remoteID == remoteID })
     }
     @State private var details: MangaDetails?
+    @State private var similar: [MangaSummary] = []
     @State private var chapters: [ChapterSummary] = []
     @State private var isLoading = true
     @State private var error: String?
@@ -200,6 +223,27 @@ struct SourceMangaView: View {
             }
             if let error {
                 Section { Text(error).foregroundStyle(.red) }
+            }
+            if !similar.isEmpty {
+                Section {
+                    ForEach(similar) { item in
+                        NavigationLink {
+                            SourceMangaView(source: source, manga: item)
+                        } label: {
+                            HStack(spacing: 12) {
+                                RemoteImage(url: item.coverURL.flatMap(URL.init(string:)),
+                                            headers: source.imageHeaders, policy: source.accessPolicy)
+                                    .frame(width: 36, height: 52)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                Text(item.title).lineLimit(2)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Similar titles")
+                } footer: {
+                    Text("Suggested by \(source.name). Only this title's id is sent to ask for them.")
+                }
             }
             Section("Chapters") {
                 ForEach(chapters) { chapter in
@@ -225,6 +269,7 @@ struct SourceMangaView: View {
         }
         .overlay { if isLoading { ProgressView() } }
         .task { await load() }
+        .task { similar = (try? await source.related(to: manga)) ?? [] }
     }
 
         /// Saves the series and its chapter list so it can be downloaded and read offline.

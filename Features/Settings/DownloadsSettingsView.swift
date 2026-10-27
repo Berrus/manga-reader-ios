@@ -6,6 +6,7 @@ struct DownloadsSettingsView: View {
     @AppStorage(DownloadSettings.aheadKey) private var ahead = 3
     @AppStorage(DownloadSettings.wifiOnlyKey) private var wifiOnly = true
     @AppStorage(DownloadSettings.deleteReadKey) private var deleteRead = false
+    @AppStorage(DownloadSettings.backgroundKey) private var background = false
     @Environment(\.modelContext) private var context
     @State private var storageText = "…"
     @State private var resultText: String?
@@ -28,10 +29,11 @@ struct DownloadsSettingsView: View {
                 }
                 Toggle("Wi-Fi only", isOn: $wifiOnly)
                 Toggle("Delete after reading", isOn: $deleteRead)
+                Toggle("Keep downloading when the app is closed", isOn: $background)
             } header: {
                 Text("Automatic downloads")
             } footer: {
-                Text(scope.detail + " Only series added from Browse are checked. iOS decides when background checks run, so updates are also checked when you open the app.")
+                Text(scope.detail + " Only series added from Browse are checked. iOS decides when background checks run, so updates are also checked when you open the app. \"Keep downloading when the app is closed\" hands a chapter's pages to iOS so they keep downloading in the background; the chapter is completed the next time you open Folio Reader. It is off by default and is new, so treat it as a beta.")
             }
 
             Section {

@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var showKomikkuRestoreConfirmation = false
     @State private var message: String?
     @State private var connecting = false
+    @State private var showKitsuSignIn = false
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,7 @@ struct SettingsView: View {
                               allowedContentTypes: [.json, UTType(filenameExtension: "tachibk", conformingTo: .data) ?? .data],
                               onCompletion: restoreBackup)
                 .sheet(isPresented: $showSourceInstaller) { SourceInstallerView() }
+                .sheet(isPresented: $showKitsuSignIn) { KitsuSignInView() }
                 .confirmationDialog("Restore Komikku backup?", isPresented: $showKomikkuRestoreConfirmation,
                                    titleVisibility: .visible) {
                     Button("Restore matched progress") { restoreKomikkuBackup() }
@@ -65,6 +67,7 @@ struct SettingsView: View {
             NavigationLink("Notifications") { NotificationSettingsView() }
             NavigationLink("Updates") { UpdatesView() }
             NavigationLink("Downloads") { DownloadsSettingsView() }
+            NavigationLink("iCloud sync") { ICloudSyncView() }
         }
     }
     private var backupSection: some View {
@@ -84,8 +87,21 @@ struct SettingsView: View {
                 Button(connecting ? "Connecting…" : "Connect AniList", action: connectAniList)
                     .disabled(connecting)
             }
+            if !MyAnimeListAuth.shared.hasClientID {
+                Text("Configure your MyAnimeList client ID to enable MyAnimeList tracking.").font(.footnote)
+            } else if MyAnimeListAuth.shared.isConnected {
+                Button("Disconnect MyAnimeList", role: .destructive) { MyAnimeListAuth.shared.disconnect() }
+            } else {
+                Button(connecting ? "Connecting…" : "Connect MyAnimeList", action: connectMyAnimeList)
+                    .disabled(connecting)
+            }
+            if KitsuAuth.shared.isConnected {
+                Button("Sign out of Kitsu", role: .destructive) { KitsuAuth.shared.signOut() }
+            } else {
+                Button("Sign in to Kitsu") { showKitsuSignIn = true }
+            }
         } header: { Text("Tracking") }
-        footer: { Text("Reading progress is sent to AniList after you finish a chapter.") }
+        footer: { Text("Reading progress is sent to AniList, MyAnimeList or Kitsu after you finish a chapter. Progress only moves forward. Kitsu signs in with your account email and password, which are sent only to Kitsu and never stored.") }
     }
     private var customSourceSection: some View {
         Section {
@@ -144,6 +160,16 @@ struct SettingsView: View {
         }
         pendingKomikkuBackup = nil
     }
+    private func connectMyAnimeList() {
+        connecting = true
+        Task {
+            defer { connecting = false }
+            do { try await MyAnimeListAuth.shared.connect() }
+            catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {}
+            catch { message = error.localizedDescription }
+        }
+    }
+
     private func connectAniList() {
         connecting = true
         Task {

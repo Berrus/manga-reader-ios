@@ -34,9 +34,12 @@ protocol Source: Sendable {
     /// Headers needed to load cover images (e.g. server authentication).
     var imageHeaders: [String: String] { get }
     var accessPolicy: SourceAccessPolicy { get }
+    /// Titles the source itself suggests for `manga` (related works, similar genres). Empty when the source offers none.
+    func related(to manga: MangaSummary) async throws -> [MangaSummary]
 }
 
 extension Source {
     var imageHeaders: [String: String] { [:] }
     var accessPolicy: SourceAccessPolicy { SourceAccessPolicy(hosts: []) }
+    func related(to manga: MangaSummary) async throws -> [MangaSummary] { [] }
 }

@@ -130,7 +130,7 @@ private struct ReaderContent: View {
 
                 case .paged:
 
-                    PagedReader(vm: vm, current: $current, isRTL: isRTL, onTap: handleTap)
+                    PagedReader(vm: vm, current: $current, isRTL: isRTL, onTap: handleTap, onEdge: handleEdge)
 
                 case .webtoon:
 
@@ -356,6 +356,9 @@ private struct ReaderContent: View {
     }
 
     /// Edge taps turn pages (following reading direction); the centre toggles the controls.
+    /// Pulling a zoomed page past its left or right edge goes to the neighbouring page on that side.
+    private func handleEdge(_ side: Int) { step(side * (isRTL ? -1 : 1)) }
+
     private func handleTap(_ x: CGFloat) {
         guard tapZones else { toggleControls(); return }
         if x < 0.25 { step(isRTL ? 1 : -1) }
@@ -382,6 +385,7 @@ private struct PagedReader: View {
     let isRTL: Bool
 
     let onTap: (CGFloat) -> Void
+    let onEdge: (Int) -> Void
 
     /// Maps logical page <-> TabView position. The mapping is its own inverse.
 
@@ -397,7 +401,7 @@ private struct PagedReader: View {
 
             ForEach(0..<vm.pageCount, id: \.self) { position in
 
-                PageView(vm: vm, page: flip(position), onTap: onTap)
+                PageView(vm: vm, page: flip(position), onTap: onTap, onEdge: onEdge)
 
                     .tag(position)
 
@@ -416,9 +420,8 @@ private struct PageView: View {
     let vm: ReaderViewModel
 
     let page: Int
-
     let onTap: (CGFloat) -> Void
-
+    let onEdge: (Int) -> Void
     @State private var image: UIImage?
     @State private var retryID = UUID()
 
@@ -428,7 +431,7 @@ private struct PageView: View {
 
             if let image {
 
-                ZoomableImage(image: image, onSingleTap: onTap)
+                ZoomableImage(image: image, onSingleTap: onTap, onEdgeSwipe: onEdge)
                     .accessibilityIdentifier("readerImage")
 
             } else if vm.failedPages.contains(page) {

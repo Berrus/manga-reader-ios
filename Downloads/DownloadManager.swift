@@ -194,6 +194,7 @@ final class DownloadManager {
         try Task.checkCancellation()
         let pages = try await source.pages(for: ChapterSummary(id: remoteID, name: chapter.name, number: chapter.number))
         guard !pages.isEmpty, pages.count <= 10_000 else { throw DownloadError.noPages }
+        if DownloadSettings.backgroundTransfers { await BackgroundPageFetcher.shared.prefetch(pages, policy: source.accessPolicy) }
         let final = chapter.downloadDirectory
         let partial = final.deletingLastPathComponent().appendingPathComponent("\(chapterID.uuidString).part", isDirectory: true)
         try? FileManager.default.removeItem(at: partial)
@@ -233,6 +234,7 @@ final class DownloadManager {
 
     nonisolated private static func fetch(_ page: PageSource, _ policy: SourceAccessPolicy) async throws -> Data {
         guard let url = URL(string: page.url), policy.allows(url) else { throw TransportError.blocked }
+        if DownloadSettings.backgroundTransfers { return try await BackgroundPageFetcher.shared.fetch(page, policy: policy) }
         var lastError: Error = DownloadError.badResponse(0)
         for attempt in 0..<3 {
             try Task.checkCancellation()
