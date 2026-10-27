@@ -20,6 +20,11 @@ enum SourceRegistry {
                 if let source = ScriptedSourceStore.shared.source(for: manifest) { result.append(source) }
             }
         }
+        if DistributionPolicy.allowsScriptedSources && PaperbackStore.shared.enabled {
+            for info in PaperbackStore.shared.installed {
+                if let source = PaperbackStore.shared.source(for: info) { result.append(source) }
+            }
+        }
         #endif
         var seen = Set<String>()
         return result.filter { seen.insert($0.id).inserted }
@@ -39,6 +44,7 @@ enum SourceRegistry {
         }
         #if !APP_STORE
         if DistributionPolicy.allowsScriptedSources, id.hasPrefix("js."), let source = ScriptedSourceStore.shared.source(id: id) { return source }
+        if DistributionPolicy.allowsScriptedSources, id.hasPrefix("pb."), let source = PaperbackStore.shared.source(id: id) { return source }
         #endif
         if DistributionPolicy.allowsCustomSources, let manifest = SourceStore.shared.manifests.first(where: { $0.id == id }) {
             return SourceStore.shared.source(for: manifest)

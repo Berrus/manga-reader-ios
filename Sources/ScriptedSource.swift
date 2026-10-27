@@ -176,11 +176,12 @@ final class ScriptedSource: Source, @unchecked Sendable {
                     request.setValue(text, forHTTPHeaderField: key)
                 }
             }
+            let prepared = request
             let outcome = Outcome()
             let semaphore = DispatchSemaphore(value: 0)
             Task.detached {
                 do {
-                    let (data, response) = try await SourceTransport.load(request, policy: policy, maxBytes: 10_000_000)
+                    let (data, response) = try await SourceTransport.load(prepared, policy: policy, maxBytes: 10_000_000)
                     outcome.value = .success((response.statusCode, String(decoding: data, as: UTF8.self)))
                 } catch { outcome.value = .failure(error) }
                 semaphore.signal()
