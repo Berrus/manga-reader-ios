@@ -48,9 +48,7 @@ struct SettingsView: View {
         Form {
             librarySection
             backupSection
-            if UIApplication.shared.supportsAlternateIcons {
-                Section("App icon") { AppIconPicker() }
-            }
+            Section("App icon") { AppIconPicker() }
             trackingSection
             if DistributionPolicy.allowsCustomSources {
                 customSourceSection

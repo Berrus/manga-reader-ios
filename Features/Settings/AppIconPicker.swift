@@ -27,10 +27,30 @@ enum AppIconChoice: String, CaseIterable, Identifiable {
 }
 
 struct AppIconPicker: View {
-    @State private var selected = AppIconChoice.current()
+        @State private var selected = AppIconChoice.current()
     @State private var errorMessage: String?
 
+    private var isSupported: Bool { UIApplication.shared.supportsAlternateIcons }
+
     var body: some View {
+        if isSupported { picker } else { unsupported }
+    }
+
+    /// Mac Catalyst never supports alternate icons; on iOS it means the build didn't declare them.
+    private var unsupported: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image("IconPreview-Indigo").resizable().frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            #if targetEnvironment(macCatalyst)
+            Text("Alternate icons aren't available in the Mac app.")
+            #else
+            Text("Alternate icons aren't available in this build. Rebuild with `xcodegen generate` so the icon sets are registered.")
+            #endif
+        }
+        .font(.footnote).foregroundStyle(.secondary)
+    }
+
+    private var picker: some View {
         HStack(spacing: 14) {
             ForEach(AppIconChoice.allCases) { choice in
                 Button { select(choice) } label: {
@@ -53,8 +73,9 @@ struct AppIconPicker: View {
                 .accessibilityAddTraits(selected == choice ? .isSelected : [])
             }
         }
-        .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity)
         .padding(.vertical, 4)
+        .onAppear { selected = AppIconChoice.current() }
         .alert("Couldn't change icon", isPresented: Binding(
             get: { errorMessage != nil },
             set: { if !$0 { errorMessage = nil } })) {
@@ -68,8 +89,9 @@ struct AppIconPicker: View {
             do {
                 try await UIApplication.shared.setAlternateIconName(choice.iconName)
                 selected = choice
-            } catch {
-                errorMessage = error.localizedDescription
+                        } catch {
+                let code = (error as NSError).code
+                errorMessage = "\(error.localizedDescription) (code \(code)). Icon: \(choice.iconName ?? "primary")"
             }
         }
     }
