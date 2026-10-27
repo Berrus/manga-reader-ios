@@ -38,3 +38,10 @@ Enable custom sources, then open Settings → Installed sources → Source repos
 ```
 
 Repositories are limited to 20 addresses, 1 MB per catalog and 200 entries. Refresh explicitly reloads the selected catalog; install/update asks for confirmation and shows allowed domains. Removing a repository does not remove installed sources. APK, Paperback and Aidoku extensions are not compatible with this format. The App Store configuration also provides opt-in declarative sources; built-in MangaDex browsing remains excluded.
+
+## Replacing installed sources
+
+The app remembers which repository each source came from. If a repository tries to install a
+source whose id is already installed but with different domains, or from a different repository,
+the confirmation shows a warning naming the old and new domains and the button becomes "Replace
+source". Plain updates (same domains, same repository) are unchanged.

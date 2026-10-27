@@ -70,6 +70,7 @@ targets:
         ANILIST_CLIENT_ID: ""   # your AniList API client ID (see README > Tracking)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-Ink AppIcon-Coral AppIcon-Light"
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
   MangaReaderTests:
