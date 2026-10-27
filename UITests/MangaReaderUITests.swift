@@ -137,6 +137,8 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Online"].exists)
         XCTAssertFalse(app.staticTexts["MangaDex"].exists)
         app.buttons["Settings"].firstMatch.tap()
+        // Check the Servers row before scrolling: it is at the top of Settings and leaves the screen afterwards.
+        XCTAssertTrue(app.buttons["Servers"].firstMatch.waitForExistence(timeout: 10))
         let custom = app.switches["Enable custom sources"]
         for _ in 0..<4 where !custom.exists { app.swipeUp() }
         XCTAssertTrue(custom.exists)
@@ -146,7 +148,6 @@ final class MangaReaderUITests: XCTestCase {
         let repositories = app.descendants(matching: .any).matching(identifier: "sourceRepositories").firstMatch
         for _ in 0..<4 where !repositories.exists { app.swipeUp() }
         XCTAssertTrue(repositories.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Servers"].firstMatch.exists)
         screenshot("08-app-store-personal-library")
         #else
         throw XCTSkip("Only the AppStore configuration excludes built-in public providers.")

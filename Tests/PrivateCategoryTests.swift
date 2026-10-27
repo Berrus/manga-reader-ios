@@ -4,11 +4,16 @@ import SwiftData
 
 @MainActor
 final class PrivateCategoryTests: XCTestCase {
+    // A ModelContext crashes if its container is freed, so every container is kept for the whole test.
+    private var retainedStores: [ModelContainer] = []
+
     private func context() throws -> ModelContext {
         let schema = Schema([Manga.self, Chapter.self, TrackLink.self, MangaReader.Category.self])
-        return try ModelContainer(for: schema, configurations: [
+        let store = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        ]).mainContext
+        ])
+        retainedStores.append(store)
+        return store.mainContext
     }
 
     private func library(_ context: ModelContext) -> (all: [Manga], categories: [MangaReader.Category]) {
