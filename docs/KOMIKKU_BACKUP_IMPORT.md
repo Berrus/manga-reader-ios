@@ -6,4 +6,4 @@ It does not install Android extensions, copy comic files, restore source credent
 
 The decoder limits compressed input to 10 MB and expanded data to 64 MB, rejects malformed protobuf, and does not write the selected backup to disk. Tests use synthetic sample data and must not include a user's real backup.
 
-When validating a real backup on macOS, confirm the preview counts before restoring and verify category/progress matches for a few known entries. The attached sample used during implementation must never be committed or copied into the repository.
+The app shows series and chapter counts before asking for confirmation. When validating a real backup on macOS, compare those counts and then verify category/progress matches for a few known entries. The attached sample used during implementation must never be committed or copied into the repository.

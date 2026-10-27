@@ -9,6 +9,8 @@ struct SettingsView: View {
     @State private var exportDocument = BackupDocument(data: Data())
     @State private var showExporter = false
     @State private var showRestorer = false
+    @State private var pendingKomikkuBackup: KomikkuBackupImporter.Preview?
+    @State private var showKomikkuRestoreConfirmation = false
     @State private var message: String?
     @State private var connecting = false
 
@@ -24,6 +26,15 @@ struct SettingsView: View {
                               allowedContentTypes: [.json, UTType(filenameExtension: "tachibk", conformingTo: .data) ?? .data],
                               onCompletion: restoreBackup)
                 .sheet(isPresented: $showSourceInstaller) { SourceInstallerView() }
+                .confirmationDialog("Restore Komikku backup?", isPresented: $showKomikkuRestoreConfirmation,
+                                   titleVisibility: .visible) {
+                    Button("Restore matched progress") { restoreKomikkuBackup() }
+                    Button("Cancel", role: .cancel) { pendingKomikkuBackup = nil }
+                } message: {
+                    if let pendingKomikkuBackup {
+                        Text("Found \(pendingKomikkuBackup.seriesCount) series and \(pendingKomikkuBackup.chapterCount) chapters. Folio will update unique matches and keep any progress already ahead.")
+                    }
+                }
                 .alert("Folio Reader", isPresented: Binding(
                     get: { message != nil }, set: { if !$0 { message = nil } })) {
                     Button("OK") { message = nil }
@@ -113,15 +124,24 @@ struct SettingsView: View {
             let data = try handle.read(upToCount: 10_000_001) ?? Data()
             guard data.count <= 10_000_000 else { throw TransportError.tooLarge }
             if data.first != UInt8(ascii: "{") {
-                let preview = try KomikkuBackupImporter.decode(data)
-                let summary = try BackupService.restore(preview.backup, into: context)
-                let unmatched = max(0, preview.seriesCount - summary.series)
-                message = "Komikku backup: restored progress for \(summary.series) of \(preview.seriesCount) series and \(summary.chapters) chapters. \(unmatched) series had no unique Folio match."
+                pendingKomikkuBackup = try KomikkuBackupImporter.decode(data)
+                showKomikkuRestoreConfirmation = true
             } else {
                 let summary = try BackupService.restore(BackupService.decode(data), into: context)
                 message = "Restored \(summary.series) series and \(summary.chapters) chapters. Skipped \(summary.ambiguous) ambiguous series."
             }
         } catch { message = "Couldn't restore: \(error.localizedDescription)" }
+    }
+    private func restoreKomikkuBackup() {
+        guard let preview = pendingKomikkuBackup else { return }
+        do {
+            let summary = try BackupService.restore(preview.backup, into: context)
+            let unmatched = max(0, preview.seriesCount - summary.series)
+            message = "Komikku backup: restored progress for \(summary.series) of \(preview.seriesCount) series and \(summary.chapters) chapters. \(unmatched) series had no unique Folio match."
+        } catch {
+            message = "Couldn't restore Komikku backup: \(error.localizedDescription)"
+        }
+        pendingKomikkuBackup = nil
     }
     private func connectAniList() {
         connecting = true
