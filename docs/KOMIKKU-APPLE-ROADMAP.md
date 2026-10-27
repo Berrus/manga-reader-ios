@@ -26,8 +26,8 @@ This is an independent implementation of product ideas. No Komikku source, artwo
 | Cover colors, palette selection, panoramic covers | Accent palettes and cover-derived reader background implemented; panoramic cover display remains later |
 | Autoscroll, preload and cache controls | Implemented for local/downloaded readers; motion pauses on interaction/backgrounding, respects accessibility |
 | Grouped updates, update errors, progress banners | Grouped updates, errors and progress implemented; cover notifications remain later |
-| Merged entries and source migration | Later; stable identities, reversible mapping and preview required |
-| Feed and recommendations | Saved-query feed implemented; recommendations remain later and require permitted APIs/content |
+| Merged entries and source migration | Implemented in the edition-tools draft branch; reversible groups, mapping preview and regression tests await Apple-platform validation |
+| Feed and recommendations | Saved-query feed exists; local-library suggestions added in the edition-tools draft branch. External discovery remains later |
 | Private categories | Later; explicit privacy feature, never a mechanism for concealing app functionality from review |
 | iCloud synchronization | Later; entitlements, conflict handling and migration tests required |
 | Android APK extensions and extension repos | Not compatible with iOS; no downloaded executable providers |

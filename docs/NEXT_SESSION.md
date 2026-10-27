@@ -18,6 +18,10 @@ Baseline main commit when this handoff was written: 60bf1d81a4406c19304207bafaea
 - No IPA has been produced. Actual iOS compilation, signing and simulator/device testing remain blocked by macOS build availability.
 - Current AppStore configuration excludes public-source browsing and custom-provider installation/resolution; local CBZ imports, personal Komga servers and optional AniList tracking remain.
 
+## New development branch
+
+See docs/ROADMAP_IMPLEMENTATION.md for reversible edition groups, source migration and local-library recommendations added after this handoff. These changes are in a draft PR, not validated or merged. iCloud remains pending container setup and conflict design. No additional CI run was requested.
+
 ## First tasks next session
 
 - [ ] Read this file and docs/KOMIKKU-APPLE-ROADMAP.md, then inspect current main and any new contributor changes.

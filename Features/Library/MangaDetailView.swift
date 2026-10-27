@@ -31,6 +31,12 @@ struct MangaDetailView: View {
                 TrackingSection(manga: manga)
             }
 
+            Section("Library tools") {
+                NavigationLink("Merge editions") { MergeEntriesView(manga: manga) }
+                NavigationLink("Migrate source") { SourceMigrationView(manga: manga) }
+                NavigationLink("Library suggestions") { LibraryRecommendationsView(manga: manga) }
+            }
+
             Section("Chapters") {
 
                 if manga.chapters.isEmpty {
