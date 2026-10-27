@@ -50,19 +50,60 @@ final class SourceStore {
         try Self.validate(manifest) // Data validation only; never runs code or requests endpoints.
         return manifest
     }
-    func add(_ manifest: JSSourceManifest) throws {
+    func add(_ manifest: JSSourceManifest, origin: String? = nil) throws {
         try Self.validate(manifest)
         let data = try JSONEncoder().encode(manifest)
         guard data.count <= Self.maxScriptBytes + 4096 else { throw TransportError.tooLarge }
         try data.write(to: directory.appendingPathComponent("\(manifest.id).json"), options: .atomic)
+        if let origin { setOrigin(origin, for: manifest.id) }
         cache[manifest.id] = nil
         manifests.removeAll { $0.id == manifest.id }
         manifests.append(manifest)
         manifests.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
+    // MARK: Provenance
+
+    private static let originsKey = "sourceOrigins"
+
+    /// Repository address a source was installed from, if it came from one.
+    func origin(of id: String) -> String? {
+        (UserDefaults.standard.dictionary(forKey: Self.originsKey) as? [String: String])?[id]
+    }
+
+    private func setOrigin(_ origin: String?, for id: String) {
+        var all = (UserDefaults.standard.dictionary(forKey: Self.originsKey) as? [String: String]) ?? [:]
+        all[id] = origin
+        UserDefaults.standard.set(all, forKey: Self.originsKey)
+    }
+
+    /// A warning to show before installing `new` when it would replace an installed source with
+    /// different domains or from a different repository. Nil means nothing unusual.
+    func replacementWarning(for new: JSSourceManifest, origin: String?) -> String? {
+        guard let existing = manifests.first(where: { $0.id == new.id }) else { return nil }
+        return Self.replacementWarning(existing: existing, existingOrigin: self.origin(of: new.id),
+                                       new: new, newOrigin: origin)
+    }
+
+    nonisolated static func replacementWarning(existing: JSSourceManifest, existingOrigin: String?,
+                                               new: JSSourceManifest, newOrigin: String?) -> String? {
+        let oldHosts = Set(existing.hosts.map { $0.lowercased() })
+        let newHosts = Set(new.hosts.map { $0.lowercased() })
+        let hostsChanged = oldHosts != newHosts
+        // Sources installed before origins were recorded have none, so only a known mismatch counts.
+        let originChanged = existingOrigin != nil && existingOrigin != newOrigin
+        guard hostsChanged || originChanged else { return nil }
+        var text = "This replaces the installed source \(existing.name) (version \(existing.version))."
+        if hostsChanged {
+            text += " It will contact \(newHosts.sorted().joined(separator: ", ")) instead of \(oldHosts.sorted().joined(separator: ", "))."
+        }
+        if originChanged { text += " It comes from a different repository than the one you installed it from." }
+        return text + " Only continue if you trust it."
+    }
+
     func remove(_ manifest: JSSourceManifest) {
         try? FileManager.default.removeItem(at: directory.appendingPathComponent("\(manifest.id).json"))
         cache[manifest.id] = nil
+        setOrigin(nil, for: manifest.id)
         manifests.removeAll { $0.id == manifest.id }
     }
     func source(for manifest: JSSourceManifest) -> JSSource? {

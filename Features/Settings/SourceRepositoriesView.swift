@@ -73,15 +73,19 @@ struct SourceRepositoriesView: View {
         .confirmationDialog("Install this source?", isPresented: Binding(
             get: { pending != nil }, set: { if !$0 { pending = nil } }), titleVisibility: .visible) {
             if let pending {
-                Button("Install or update") {
-                    do { try store.add(pending); message = "\(pending.name) installed." }
+                let replacing = store.replacementWarning(for: pending, origin: selectedAddress) != nil
+                Button(replacing ? "Replace source" : "Install or update", role: replacing ? .destructive : nil) {
+                    do { try store.add(pending, origin: selectedAddress); message = "\(pending.name) installed." }
                     catch { message = error.localizedDescription }
                     self.pending = nil
                 }
             }
             Button("Cancel", role: .cancel) { pending = nil }
         } message: {
-            if let pending { Text("\(pending.name) · Allowed domains: \(pending.hosts.joined(separator: ", "))") }
+            if let pending {
+                Text(store.replacementWarning(for: pending, origin: selectedAddress)
+                     ?? "\(pending.name) · Allowed domains: \(pending.hosts.joined(separator: ", "))")
+            }
         }
     }
 
