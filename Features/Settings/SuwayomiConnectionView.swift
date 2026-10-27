@@ -11,13 +11,15 @@ struct SuwayomiConnectionView: View {
 
     var body: some View {
         Form {
-            Section("Server") {
+            Section {
                 TextField("https://server.example.com", text: $address)
                     .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                 TextField("Username (optional)", text: $username)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 SecureField("Password (optional)", text: $password)
                 Button(busy ? "Testing…" : "Test connection", action: test).disabled(busy)
+            } header: {
+                Text("Server")
             } footer: {
                 Text("This connection test supports HTTPS and optional HTTP Basic authentication. It lists up to 200 installed sources. It does not save the server, install sources, or read manga.")
             }
