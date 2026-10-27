@@ -331,6 +331,10 @@ private struct MangaCell: View {
                 Text(manga.title).font(.subheadline.weight(.semibold)).lineLimit(2)
                     .multilineTextAlignment(.leading)
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                if manga.mergeGroupID != nil {
+                    Label("Edition group", systemImage: "square.stack")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }
     }
