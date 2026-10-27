@@ -17,7 +17,12 @@ actor CBZArchive: PageProvider {
 
     init(url: URL) throws {
 
-        guard let archive = try? Archive(url: url, accessMode: .read) else { throw CBZError.unreadable }
+        let archive: Archive
+        do {
+            archive = try Archive(url: url, accessMode: .read, pathEncoding: nil)
+        } catch {
+            throw CBZError.unreadable
+        }
 
         let images = archive
 

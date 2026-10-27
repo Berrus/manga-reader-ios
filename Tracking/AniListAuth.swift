@@ -21,7 +21,7 @@ final class AniListAuth {
     static let shared = AniListAuth()
 
     static let callbackScheme = "folioreader"
-    private static let account = "anilist.token"
+    nonisolated private static let account = "anilist.token"
 
     private(set) var isConnected = Keychain.get(AniListAuth.account) != nil
 

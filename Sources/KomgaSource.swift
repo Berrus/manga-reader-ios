@@ -91,8 +91,8 @@ struct KomgaSource: Source {
         request.setValue(authorization, forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await SourceTransport.load(request, policy: accessPolicy, maxBytes: 10_000_000)
-        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw KomgaError.http(http.statusCode)
+        if !(200..<300).contains(response.statusCode) {
+            throw KomgaError.http(response.statusCode)
         }
         return try JSONDecoder().decode(T.self, from: data)
     }

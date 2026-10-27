@@ -25,7 +25,7 @@ enum KomikkuBackupImporter {
         }
 
         let root = try ProtoReader(payload).fields()
-        let savedCategories = try root.filter { $0.number == 2 }.compactMap { try $0.bytes }
+        let savedCategories = root.filter { $0.number == 2 }.compactMap(\.bytes)
         let categories = try savedCategories.map(parseCategory)
         guard categories.count <= 1_000 else { throw KomikkuBackupError.invalidFormat }
         var categoryIDs: [UInt64: UUID] = [:]
@@ -33,7 +33,7 @@ enum KomikkuBackupImporter {
             categoryIDs[category.sourceID] = category.id
         }
 
-        let mangaMessages = try root.filter { $0.number == 1 }.compactMap { try $0.bytes }
+        let mangaMessages = root.filter { $0.number == 1 }.compactMap(\.bytes)
         guard !mangaMessages.isEmpty, mangaMessages.count <= maxSeries else { throw KomikkuBackupError.invalidFormat }
 
         var series: [BackupFile.SeriesEntry] = []
@@ -44,7 +44,7 @@ enum KomikkuBackupImporter {
                 .map(validTitle) ?? ""
             guard !title.isEmpty else { continue }
 
-            let savedChapterMessages = try fields.filter { $0.number == 16 }.compactMap { try $0.bytes }
+            let savedChapterMessages = fields.filter { $0.number == 16 }.compactMap(\.bytes)
             totalChapters += savedChapterMessages.count
             guard totalChapters <= maxChapters else { throw KomikkuBackupError.invalidFormat }
 
@@ -52,19 +52,19 @@ enum KomikkuBackupImporter {
             chapters.reserveCapacity(savedChapterMessages.count)
             for chapterBytes in savedChapterMessages {
                 let chapter = try ProtoReader(chapterBytes).fields()
-                guard let name = try chapter.first(where: { $0.number == 2 })?.string,
+                guard let name = chapter.first(where: { $0.number == 2 })?.string,
                       !name.isEmpty,
                       let numberBits = chapter.first(where: { $0.number == 9 })?.fixed32 else { continue }
                 let number = Double(Float(bitPattern: numberBits))
                 guard number.isFinite else { continue }
-                let rawLastPage = try chapter.first(where: { $0.number == 6 })?.integer ?? 0
+                let rawLastPage = chapter.first(where: { $0.number == 6 })?.integer ?? 0
                 let lastPage = Int(min(rawLastPage, UInt64(Int.max)))
-                let isRead = (try chapter.first(where: { $0.number == 4 })?.integer ?? 0) != 0
+                let isRead = (chapter.first(where: { $0.number == 4 })?.integer ?? 0) != 0
                 chapters.append(.init(name: name, number: number, pageCount: 0,
                                       lastPage: max(0, lastPage), isRead: isRead))
             }
 
-            let mangaCategoryIDs = try fields.filter { $0.number == 17 }.flatMap(\.integers)
+            let mangaCategoryIDs = fields.filter { $0.number == 17 }.flatMap(\.integers)
             let categoryID = mangaCategoryIDs.compactMap { categoryIDs[$0] }.first
             series.append(.init(id: UUID(), title: title, direction: "rightToLeft", readerMode: "paged",
                                 categoryID: categoryID, lastReadAt: nil, lastReadChapterName: nil,
@@ -88,10 +88,10 @@ enum KomikkuBackupImporter {
 
     private static func parseCategory(_ data: Data) throws -> SavedCategory {
         let fields = try ProtoReader(data).fields()
-        let name = try fields.first { $0.number == 1 }?.string ?? ""
+        let name = fields.first { $0.number == 1 }?.string ?? ""
         guard !name.isEmpty else { throw KomikkuBackupError.invalidFormat }
-        let sourceID = try fields.first { $0.number == 3 }?.integer ?? 0
-        let orderValue = try fields.first { $0.number == 2 }?.integer ?? 0
+        let sourceID = fields.first { $0.number == 3 }?.integer ?? 0
+        let orderValue = fields.first { $0.number == 2 }?.integer ?? 0
         let order = Int(min(orderValue, UInt64(Int.max)))
         return SavedCategory(sourceID: sourceID, id: UUID(), name: name, order: order)
     }
