@@ -29,8 +29,17 @@ final class AppearancePreferences {
 
 struct AppearanceSettingsView: View {
     @State private var preferences = AppearancePreferences.shared
+    @AppStorage("appearance.mode") private var mode = "system"
     var body: some View {
         Form {
+            Section("Appearance") {
+                Picker("Mode", selection: $mode) {
+                    Text("System").tag("system")
+                    Text("Light").tag("light")
+                    Text("Dark").tag("dark")
+                    Text("AMOLED Black").tag("amoled")
+                }
+            }
             Section("Accent color") {
                 ForEach(AppPalette.allCases) { palette in
                     Button {
