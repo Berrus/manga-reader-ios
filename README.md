@@ -97,7 +97,7 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Browse: MangaDex via its official API (safe/suggestive content only), your own Komga servers (Settings > Library > Servers, passwords in the Keychain), and optional custom sources.
 - Offline downloads: add a series from Browse to the library, then download chapters (swipe a chapter, or the download menu on the series page). Settings > Library > Downloads sets automatic downloads: series you're reading, selected series, or recently updated; how many chapters to keep ahead; Wi-Fi only; delete after reading. Updates are checked when you open the app (at most every 4 hours), with a best-effort iOS background refresh.
 - Backup and restore of categories, progress and tracker links (Settings > Backup).
-- Suwayomi servers you run yourself (Settings > Library > Servers): browse sources, search, add to library, read and download. See docs/SUWAYOMI.md.
+- Suwayomi servers you run yourself (Settings > Library > Servers): browse sources, search, add to library, read and download. See docs/SUWAYOMI.md, which also covers adding extension repositories such as Keiyoushi to your server from the app.
 - Optional, off-by-default custom sources (Settings tab) with a Browse tab; see docs/SOURCES.md.
 - Resume a partly read chapter before starting an unread one.
 - Paged left-to-right/right-to-left and vertical webtoon readers.

@@ -14,6 +14,13 @@ enum SourceRegistry {
                 if let source = SourceStore.shared.source(for: manifest) { result.append(source) }
             }
         }
+        #if !APP_STORE
+        if DistributionPolicy.allowsScriptedSources && ScriptedSourceStore.shared.enabled {
+            for manifest in ScriptedSourceStore.shared.manifests {
+                if let source = ScriptedSourceStore.shared.source(for: manifest) { result.append(source) }
+            }
+        }
+        #endif
         var seen = Set<String>()
         return result.filter { seen.insert($0.id).inserted }
     }
@@ -30,6 +37,9 @@ enum SourceRegistry {
         if let parsed = SuwayomiSource.parseID(id) {
             return ServerStore.shared.suwayomiSource(serverID: parsed.server, sourceID: parsed.source)
         }
+        #if !APP_STORE
+        if DistributionPolicy.allowsScriptedSources, id.hasPrefix("js."), let source = ScriptedSourceStore.shared.source(id: id) { return source }
+        #endif
         if DistributionPolicy.allowsCustomSources, let manifest = SourceStore.shared.manifests.first(where: { $0.id == id }) {
             return SourceStore.shared.source(for: manifest)
         }
