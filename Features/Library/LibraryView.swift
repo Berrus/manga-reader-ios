@@ -30,6 +30,7 @@ struct LibraryView: View {
     @State private var errorMessage: String?
     @State private var search = ""
     @State private var updater = LibraryUpdater.shared
+    @AppStorage("appearance.mode") private var appearanceMode = "system"
 
     private let columns = [GridItem(.adaptive(minimum: 120, maximum: 200), spacing: 18, alignment: .top)]
 
@@ -62,6 +63,7 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             libraryContent
+            .background(appearanceMode == "amoled" ? Color.black : Color.clear)
             .navigationTitle("Library")
             .searchable(text: $search, prompt: "Search library")
             .navigationDestination(for: Manga.self) { LibraryEntryView(manga: $0) }

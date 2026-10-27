@@ -4,6 +4,7 @@ import SwiftData
 @main
 struct MangaReaderApp: App {
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("appearance.mode") private var appearanceMode = "system"
     private let container: ModelContainer
 
     init() {
@@ -38,6 +39,8 @@ struct MangaReaderApp: App {
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "gearshape") }
             }
+            .preferredColorScheme(appearanceMode == "system" ? nil : (appearanceMode == "light" ? .light : .dark))
+            .background(appearanceMode == "amoled" ? Color.black : Color.clear)
             .environment(SourceStore.shared)
             .tint(Theme.accent)
             .onChange(of: scenePhase) { _, phase in
