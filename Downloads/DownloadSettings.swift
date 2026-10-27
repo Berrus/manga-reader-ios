@@ -33,6 +33,7 @@ enum DownloadSettings {
     static let aheadKey = "download.ahead"
     static let wifiOnlyKey = "download.wifiOnly"
     static let deleteReadKey = "download.deleteRead"
+    static let backgroundKey = "download.background"
     static let lastCheckKey = "download.lastCheck"
 
     static func registerDefaults() {
@@ -40,7 +41,8 @@ enum DownloadSettings {
             scopeKey: AutoDownloadScope.off.rawValue,
             aheadKey: 3,
             wifiOnlyKey: true,
-            deleteReadKey: false
+            deleteReadKey: false,
+            backgroundKey: false
         ])
     }
 
@@ -50,6 +52,8 @@ enum DownloadSettings {
     static var ahead: Int { max(UserDefaults.standard.integer(forKey: aheadKey), 1) }
     static var wifiOnly: Bool { UserDefaults.standard.bool(forKey: wifiOnlyKey) }
     static var deleteRead: Bool { UserDefaults.standard.bool(forKey: deleteReadKey) }
+    /// Hand page downloads to a background URL session so they continue after the app is closed.
+    static var backgroundTransfers: Bool { UserDefaults.standard.bool(forKey: backgroundKey) }
     static var lastCheck: Date? { UserDefaults.standard.object(forKey: lastCheckKey) as? Date }
 }
 

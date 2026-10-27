@@ -3,6 +3,7 @@ import SwiftData
 
 @main
 struct MangaReaderApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("appearance.mode") private var appearanceMode = "system"
     private let container: ModelContainer
@@ -60,6 +61,7 @@ struct MangaReaderApp: App {
             }
             .task {
                 DownloadManager.shared.resume(context: container.mainContext)
+                BackgroundPageFetcher.purgeStaleCache()
                 AniListAuth.shared.restore()
                 MyAnimeListAuth.shared.restore()
                 KitsuAuth.shared.restore()
