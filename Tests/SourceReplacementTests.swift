@@ -38,4 +38,11 @@ final class SourceReplacementTests: XCTestCase {
             existing: manifest(hosts: ["Example.com", "cdn.example.com"]), existingOrigin: nil,
             new: manifest(hosts: ["cdn.example.com", "example.COM"]), newOrigin: nil))
     }
+    func testDirectReplacementWarnsWhenExistingRepositoryIsKnown() throws {
+        let warning = try XCTUnwrap(SourceStore.replacementWarning(
+            existing: manifest(), existingOrigin: "https://a.example/index.json",
+            new: manifest(version: "2"), newOrigin: nil))
+        XCTAssertTrue(warning.contains("different repository"))
+    }
+
 }

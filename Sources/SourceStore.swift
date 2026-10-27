@@ -50,12 +50,15 @@ final class SourceStore {
         try Self.validate(manifest) // Data validation only; never runs code or requests endpoints.
         return manifest
     }
-    func add(_ manifest: JSSourceManifest, origin: String? = nil) throws {
+    func add(_ manifest: JSSourceManifest, origin: String? = nil, confirmedReplacement: Bool = false) throws {
         try Self.validate(manifest)
+        if !confirmedReplacement, let warning = replacementWarning(for: manifest, origin: origin) {
+            throw JSSourceError.invalidManifest(warning)
+        }
         let data = try JSONEncoder().encode(manifest)
         guard data.count <= Self.maxScriptBytes + 4096 else { throw TransportError.tooLarge }
         try data.write(to: directory.appendingPathComponent("\(manifest.id).json"), options: .atomic)
-        if let origin { setOrigin(origin, for: manifest.id) }
+        setOrigin(origin, for: manifest.id)
         cache[manifest.id] = nil
         manifests.removeAll { $0.id == manifest.id }
         manifests.append(manifest)

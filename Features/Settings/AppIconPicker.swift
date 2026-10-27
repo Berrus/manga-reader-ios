@@ -106,8 +106,13 @@ struct AppIconPicker: View {
     private static func apply(_ name: String?) async throws {
         var attempt = 0
         while true {
-            if UIApplication.shared.applicationState != .active {
+            var waits = 0
+            while UIApplication.shared.applicationState != .active && waits < 30 {
                 try await Task.sleep(nanoseconds: 500_000_000)
+                waits += 1
+            }
+            guard UIApplication.shared.applicationState == .active else {
+                throw NSError(domain: NSPOSIXErrorDomain, code: 35)
             }
             do {
                 try await UIApplication.shared.setAlternateIconName(name)
