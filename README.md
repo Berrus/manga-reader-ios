@@ -59,6 +59,18 @@ Common problems: "No profiles / signing for team" means the team or bundle ID is
 
 Progress is synced when you finish a chapter and at launch. The higher chapter number wins and sync never marks local chapters unread. AniList stores whole chapters only, so 12.5 is sent as 12. Chapter numbers come from file names, so check them if a sync looks off. The token is kept in the Keychain; no client secret is used.
 
+## MyAnimeList tracking (optional)
+
+1. Create an API client at <https://myanimelist.net/apiconfig> (app type "other") and set the **App Redirect URL** to `folioreader://mal`.
+2. Put the client ID in `project.yml` (`MAL_CLIENT_ID`), then run `xcodegen generate`.
+3. Settings > Tracking > Connect MyAnimeList, then open a series and tap **Link to MyAnimeList**. A series can be linked to AniList and MyAnimeList at the same time.
+
+Sign-in uses PKCE, so no client secret is stored; tokens are refreshed automatically and kept in the Keychain. MyAnimeList stores whole chapters (12.5 is sent as 12), its search needs at least 3 letters, and it hides adult titles by default.
+
+## Private categories
+
+Settings > Library > Categories: swipe a category right to make it private. Its series are hidden from the library, history, updates and suggestions until you unlock with Face ID, Touch ID or the device passcode (the lock button in the library toolbar). The app locks again when it leaves the foreground, and notifications never show a private series' title or cover. It needs a device passcode. This is a privacy convenience, not encryption: private series are still stored on the device and included in backups.
+
 ## Run on a Mac
 
 The Mac version is built with Mac Catalyst. Choose the **My Mac (Mac Catalyst)** destination and Run. It needs a signing team (the app is sandboxed with user-selected file access and network client entitlements). Arrow keys, space and up/down turn pages.

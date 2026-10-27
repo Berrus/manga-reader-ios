@@ -158,8 +158,8 @@ final class MyAnimeListAuth {
 
     /// `application/x-www-form-urlencoded` body with every value percent-encoded.
     nonisolated static func formBody(_ fields: [String: String]) -> Data {
-        var allowed = CharacterSet.alphanumerics
-        allowed.insert(charactersIn: "-._~")
+        // ASCII only: CharacterSet.alphanumerics also contains accented letters, which must be encoded.
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
         let text = fields.sorted { $0.key < $1.key }.map {
             "\($0.key)=\($0.value.addingPercentEncoding(withAllowedCharacters: allowed) ?? "")"
         }.joined(separator: "&")
