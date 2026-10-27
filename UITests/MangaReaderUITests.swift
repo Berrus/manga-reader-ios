@@ -137,11 +137,17 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Online"].exists)
         XCTAssertFalse(app.staticTexts["MangaDex"].exists)
         app.buttons["Settings"].firstMatch.tap()
-        XCTAssertFalse(app.switches["Enable custom sources"].exists)
+        let custom = app.switches["Enable custom sources"]
+        for _ in 0..<4 where !custom.exists { app.swipeUp() }
+        XCTAssertTrue(custom.exists)
+        if (custom.value as? String) == "0" { custom.tap() }
+        let repositories = app.buttons["Source repositories"]
+        for _ in 0..<4 where !repositories.exists { app.swipeUp() }
+        XCTAssertTrue(repositories.exists)
         XCTAssertTrue(app.buttons["Servers"].firstMatch.exists)
         screenshot("08-app-store-personal-library")
         #else
-        throw XCTSkip("Only the AppStore configuration excludes public/custom providers.")
+        throw XCTSkip("Only the AppStore configuration excludes built-in public providers.")
         #endif
     }
 
