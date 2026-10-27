@@ -106,6 +106,7 @@ struct SettingsView: View {
             }
             Button("Add source…", systemImage: "plus") { showSourceInstaller = true }
             NavigationLink("Source repositories") { SourceRepositoriesView() }
+                .accessibilityIdentifier("sourceRepositories")
         }
     }
     private func exportBackup() {
@@ -171,8 +172,11 @@ private struct SourceInstallerView: View {
                 if let pending {
                     Section("Install \(pending.name)?") {
                         Text("Allowed domains: " + pending.hosts.joined(separator: ", "))
-                        Button("Install") {
-                            do { try store.add(pending); dismiss() }
+                        if let warning = store.replacementWarning(for: pending, origin: nil) {
+                            Text(warning).foregroundStyle(.orange)
+                        }
+                        Button(store.replacementWarning(for: pending, origin: nil) == nil ? "Install" : "Replace source") {
+                            do { try store.add(pending, confirmedReplacement: true); dismiss() }
                             catch { self.error = error.localizedDescription }
                         }
                     }

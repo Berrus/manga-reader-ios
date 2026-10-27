@@ -75,7 +75,7 @@ struct SourceRepositoriesView: View {
             if let pending {
                 let replacing = store.replacementWarning(for: pending, origin: selectedAddress) != nil
                 Button(replacing ? "Replace source" : "Install or update", role: replacing ? .destructive : nil) {
-                    do { try store.add(pending, origin: selectedAddress); message = "\(pending.name) installed." }
+                    do { try store.add(pending, origin: selectedAddress, confirmedReplacement: true); message = "\(pending.name) installed." }
                     catch { message = error.localizedDescription }
                     self.pending = nil
                 }
