@@ -101,17 +101,17 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Optional, off-by-default custom sources (Settings tab) with a Browse tab; see docs/SOURCES.md.
 - Resume a partly read chapter before starting an unread one.
 - Paged left-to-right/right-to-left and vertical webtoon readers.
-- Pinch/double-tap zoom in paged mode, page slider and chapter navigation.
+- Pinch/double-tap zoom in paged and webtoon modes, page slider and chapter navigation.
 - Per-chapter progress, bounded page indices, fit-specific memory-limited image caching.
 - Error messages and retry controls for individual pages that cannot decode.
 
 ## Still needs hands-on testing
 
-iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom and zoom edge chaining are not implemented.
+iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom (1x to 3x, double-tap to reset) is new and untested on a device, and zoom edge chaining in paged mode is not implemented.
 
 The full feature checklist, including everything not implemented, is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
-Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, true background downloads (URLSession background sessions), iCloud/CloudKit sync, widget and Shortcuts, MyAnimeList/Kitsu trackers, localization catalogs, and the monthly source-update pipeline. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
+Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, true background downloads (URLSession background sessions), iCloud/CloudKit sync, widget and Shortcuts, a Kitsu tracker, localization catalogs, and the monthly source-update pipeline. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
 
 ## Content and licensing
 
