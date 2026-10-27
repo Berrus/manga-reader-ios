@@ -1,47 +1,33 @@
 # Next-session handoff — Folio Reader
 
-## User's latest instruction
-
-Save the remaining roadmap features as a list for the next session. Do not treat this handoff as evidence that these features have been implemented.
+## Where things stand (updated 2026-10-27)
 
 Repository: https://github.com/Berrus/manga-reader-ios
-Baseline main commit when this handoff was written: 60bf1d81a4406c19304207bafaea18179105d3e0
 
-## Current status
-
-- PR #8 merged: saved searches, library reading/offline filters, last-read sorting, and bulk category moves.
-- PR #9 merged: five accent palettes, dark cover-derived reader backgrounds, webtoon autoscroll, preload and image-cache controls.
-- PR #9's final head `79f03d1` passed 64 unit tests and seven UI tests on each of iPhone and iPad (71 per device); Mac Catalyst built successfully.
-- PR #10 is merged: saved-query feed, grouped updates, update errors/progress, privacy declarations, and a separate FolioReader-AppStore configuration.
-- PR #10's latest code is NOT validated. An earlier LibraryView type-checking failure was patched, but the latest checks and retry failed before runners executed any steps. Do not describe the current main build as passing.
-- The user reports exhausted GitHub usage credits and has no Mac available right now.
-- No IPA has been produced. Actual iOS compilation, signing and simulator/device testing remain blocked by macOS build availability.
-- Current AppStore configuration excludes public-source browsing and custom-provider installation/resolution; local CBZ imports, personal Komga servers and optional AniList tracking remain.
-
-## New development branch
-
-See docs/ROADMAP_IMPLEMENTATION.md for reversible edition groups, source migration and local-library recommendations added after this handoff. These changes are in a draft PR, not validated or merged. iCloud remains pending container setup and conflict design. No additional CI run was requested.
+- Everything from the old roadmap list is merged into `main` (PR #19 and earlier): merged editions, source migration, library and MangaDex recommendations, full-cover viewing, update notifications, private categories, AniList/MyAnimeList/Kitsu trackers, Suwayomi, OPDS (Kavita), comic EPUB, webtoon pinch zoom, paged zoom edge-chaining, opt-in iCloud sync and opt-in background downloads.
+- Build and Test passed on 2026-10-27 (run 53, commit `398b09c`): iPhone tests, iPad tests, Mac Catalyst build and the App Store distribution job. Simulator tests do not replace real devices, servers or accounts.
+- No IPA has been produced. Nothing has been tried on a physical device, a real Kavita/Suwayomi server, or real tracker accounts. The list of what still needs that is "Needs verification" in docs/FEATURE_STATUS.md.
+- The AppStore configuration (`FolioReader-AppStore`) allows opt-in declarative sources and Suwayomi (`DistributionPolicy.allowsCustomSources`); that is a policy decision to revisit before submission.
 
 ## First tasks next session
 
 - [ ] Read this file and docs/KOMIKKU-APPLE-ROADMAP.md, then inspect current main and any new contributor changes.
-- [ ] Check macOS runner availability and GitHub Actions startup annotations. Do not repeatedly consume credits while the reported limit remains unresolved.
-- [ ] Build/test current main on iPhone and iPad simulators, build Mac Catalyst, and run the AppStore source-boundary/privacy-manifest checks.
-- [ ] Resolve compiler/test errors before claiming a passing build.
+- [ ] Do not repeatedly consume GitHub Actions credits; commits can carry `[skip ci]`, and builds can be started by hand (`workflow_dispatch`).
+- [x] Build/test current main on iPhone and iPad simulators, build Mac Catalyst, and run the AppStore source-boundary/privacy-manifest checks (passing, run 53).
+- [x] Resolve compiler/test errors before claiming a passing build.
 - [ ] When signing and macOS are available, archive/export an IPA and validate through TestFlight or the intended device-installation route.
 - [ ] Preserve existing work and contributor history; do not overwrite concurrent changes.
 
-## Remaining feature list, in suggested order
+## Remaining feature list
 
-1. [ ] **Merged library entries** — combine editions/providers into one logical library entry; preserve original chapter ownership, files, reading progress, categories and tracker links. Provide preview and reversible unmerge. Cover merge state in backup/restore tests.
-2. [ ] **Source migration** — search an allowed destination provider, preview chapter mappings, skip ambiguous matches, preserve completed progress, and retain the original entry until the user explicitly chooses otherwise. Do not silently equate partial-page positions across different editions.
-3. [ ] **Recommendations** — begin with clearly labelled recommendations from the user's existing library. Broader discovery can follow through documented, permitted metadata APIs; no unlicensed bundled catalogs.
-4. [ ] **iCloud synchronization** — design identity matching, conflict handling, opt-in controls and migration tests. Explicitly define whether progress, library metadata or files sync. Configure real Apple container identifiers/entitlements and test across two devices; never sync credentials.
-5. [ ] **Private categories** — explicit user-facing privacy controls, distinct from concealing functionality from App Review.
-6. [ ] **Panoramic/full-cover display** — preserve image aspect ratio and support accessible viewing/sharing of user-authorized covers.
-7. [ ] **Update notifications with cover art** — request permission in context; respect best-effort iOS background scheduling.
-8. [ ] **Additional tracker integrations** — verify each service's API terms/authentication and test progress conflicts and failures.
-9. [ ] **Dedicated macOS experience** — currently Mac Catalyst is the supported desktop target; assess a native macOS target separately.
+The features that used to be listed here are built (see above). What is still not built:
+
+- [ ] **Native macOS target** — Mac Catalyst is the desktop target; a native port is assessed in docs/MACOS_NATIVE.md, not built.
+- [ ] Reflowable (text) EPUB reader, and Kavita's native REST API (its OPDS feed works).
+- [ ] Recommendations from sources other than MangaDex; broader cover-based theming.
+- [ ] Widget and Shortcuts actions; localization catalogs.
+- [ ] The monthly source-update pipeline and remote kill switch for sources.
+- [ ] iCloud follow-ups listed in docs/ROADMAP_IMPLEMENTATION.md (stable identities, signed iCloud build, two-device validation).
 
 ## App Store release checklist
 

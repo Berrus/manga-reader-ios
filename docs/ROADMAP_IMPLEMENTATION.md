@@ -21,20 +21,19 @@ The new optional SwiftData property needs an existing-store upgrade test on Appl
 
 Commit messages use [skip ci] to avoid spending the exhausted Actions allowance. The draft PR is for code review and later Apple-platform validation. Existing AppStore source boundaries are retained by using SourceRegistry's allowed providers, rather than introducing downloadable code or new catalogs.
 
-## Next: opt-in iCloud synchronization
+## iCloud synchronization
 
-Not implemented or enabled in this branch. It requires an explicitly defined sync scope and owner-controlled Apple identifiers/provisioning. Proposed first scope is reading progress for books already present on both devices; no comic files, passwords or server credentials.
+Built as an opt-in file-per-device merge through iCloud Drive (see docs/ICLOUD_SYNC.md): categories, progress and tracker links, forward-only, no comic files, passwords or tokens. It is off by default and needs the iCloud entitlement, which is not in the default project.
 
-Before implementation:
-1. Register an iCloud container for the actual bundle identifier and add an optional signed iCloud build configuration without breaking existing local-only builds.
-2. Use stable provider/book/chapter identities. Personal-server UUIDs differ between devices; do not match remote entries by title alone.
-3. Define conflict/reset semantics explicitly; prevent ambiguous title/edition matches and partial-page transfer across mismatched page counts.
-4. Keep iCloud file access off the main thread and coordinate reads/writes. Surface unavailable accounts, pending downloads and storage errors.
-5. Add round-trip, concurrent update, reset, duplicate-identity, cancellation and malformed-data tests.
-6. Validate on two signed devices with the same iCloud account, including offline changes, account switching and opt-out.
+Still open for iCloud:
+1. Register an iCloud container for the real bundle identifier and add an optional signed iCloud build configuration without breaking local-only builds.
+2. Identity: this first version matches series by title and chapters by name, as backups do. Stable cross-device identities for remote entries (personal-server ids differ between devices) are not done.
+3. Conflict and reset semantics beyond "progress only moves forward"; deletions do not propagate.
+4. Tests for concurrent updates, reset, duplicate identities, cancellation and malformed files.
+5. Validation on two signed devices with the same iCloud account, including offline changes, account switching and opt-out.
 
 Apple references:
 - https://developer.apple.com/documentation/foundation/filemanager/url(forubiquitycontaineridentifier:)
 - https://developer.apple.com/documentation/foundation/nsfilecoordinator
 
-Later work remains: private categories, full-cover display/sharing, update notifications, additional tracker APIs and a dedicated macOS experience. None is claimed complete here.
+Other roadmap items (private categories, full-cover display, update notifications, MyAnimeList and Kitsu) are built; see docs/FEATURE_STATUS.md for what each still needs in the real world. The dedicated macOS target is assessed, not built (docs/MACOS_NATIVE.md).
