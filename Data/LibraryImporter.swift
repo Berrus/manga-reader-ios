@@ -29,7 +29,7 @@ enum LibraryImporter {
 
         defer { if scoped { sourceURL.stopAccessingSecurityScopedResource() } }
 
-        let fileName = "\(UUID().uuidString).cbz"
+        let fileName = "\(UUID().uuidString).\(sourceURL.pathExtension.lowercased() == "epub" ? "epub" : "cbz")"
 
         let destination = booksDirectory.appendingPathComponent(fileName)
 
@@ -40,9 +40,8 @@ enum LibraryImporter {
         let oldCover = manga?.coverData
         do {
 
-            let archive = try CBZArchive(url: destination)
-
-            let first = try await archive.pageData(at: 0)
+            let archive = try ComicArchive.open(url: destination)
+            let first = try await archive.provider.pageData(at: 0)
 
             let cover = ImageDownsampler.image(from: first, maxPixel: 500)?
 
