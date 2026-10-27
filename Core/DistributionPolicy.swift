@@ -4,7 +4,7 @@ import Foundation
 enum DistributionPolicy {
     #if APP_STORE
     static let allowsPublicSources = false
-    static let allowsCustomSources = false
+    static let allowsCustomSources = true
     #else
     static let allowsPublicSources = true
     static let allowsCustomSources = true
