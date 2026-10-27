@@ -12,4 +12,6 @@ enum DistributionPolicy {
 
     /// Suwayomi servers run third-party extensions, so they follow the custom-source decision.
     static var allowsSuwayomi: Bool { allowsCustomSources }
+    /// Installing extension repositories and extensions on a server is left out of the App Store build.
+    static var allowsExtensionManagement: Bool { allowsSuwayomi && allowsPublicSources }
 }

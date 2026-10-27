@@ -41,6 +41,17 @@ struct SuwayomiSourcesView: View {
                     description: Text("Install extensions in the Suwayomi web interface, then pull to refresh."))
             }
         }
+        .toolbar {
+            if DistributionPolicy.allowsExtensionManagement {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SuwayomiExtensionsView(server: server)
+                    } label: {
+                        Label("Extensions", systemImage: "puzzlepiece.extension")
+                    }
+                }
+            }
+        }
         .navigationTitle(server.name)
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "Search sources")

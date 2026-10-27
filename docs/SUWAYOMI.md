@@ -33,3 +33,18 @@ Library entries remember the source as `suwayomi.<server id>.<source id>`, so do
 - Fetching chapters asks the server to refresh from the source each time, so update checks on many Suwayomi series can be slow.
 - Migration and the saved-search feed can use Suwayomi sources you have opened, but the migration destination picker lists only sources the app can enumerate without contacting a server.
 - Controlled by `DistributionPolicy.allowsSuwayomi`, which follows `allowsCustomSources`. Turn that off for a build that must not include third-party-extension servers.
+
+## Adding extension repositories (for example Keiyoushi)
+
+Keiyoushi (<https://keiyoushi.github.io>) publishes **Android** extensions for Mihon, Komikku and Suwayomi. They cannot run inside an iPhone app, so the route on iOS is your Suwayomi server, which runs them for you.
+
+1. Browse > *Suwayomi servers* > your server > the **Extensions** button (puzzle-piece icon).
+2. Under *Repositories*, enter a repository address and tap **Add**, or tap **Use the Keiyoushi repository** (`https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json`, as documented by Keiyoushi; check their getting-started guide for the current address). A confirmation shows the address first.
+3. Install the extensions you want from the list. Sources then appear under the server's source list. Adult-only and obsolete extensions are hidden.
+
+What this does: the app asks your server to add the repository to its settings and to install, update or remove extensions. Nothing is installed on the phone, and Folio Reader does not host or recommend any repository. Repositories must be `https://`, without credentials, at most 20.
+
+**App Store build:** extension management is left out of the `FolioReader-AppStore` configuration (`DistributionPolicy.allowsExtensionManagement`). You can still do the same on the server's own web page, and the app will list whatever sources the server then has.
+
+Not verified against a real server: the settings and extension GraphQL calls (`settings { extensionRepos }`, `setSettings`, `fetchExtensions`, `updateExtension`) follow Suwayomi-Server's API from memory, and older server versions may not have the repository setting. Adding a repository, installing one extension and checking that it shows up as a source is the quickest test.
+
