@@ -46,6 +46,7 @@ struct MangaReaderApp: App {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     Task {
+                        await ICloudSync.shared.syncIfNeeded(context: container.mainContext)
                         await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
                         DownloadManager.shared.resume(context: container.mainContext)
                     }

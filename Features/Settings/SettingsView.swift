@@ -67,6 +67,7 @@ struct SettingsView: View {
             NavigationLink("Notifications") { NotificationSettingsView() }
             NavigationLink("Updates") { UpdatesView() }
             NavigationLink("Downloads") { DownloadsSettingsView() }
+            NavigationLink("iCloud sync") { ICloudSyncView() }
         }
     }
     private var backupSection: some View {
