@@ -18,6 +18,7 @@ struct ServersView: View {
                     }
                 }
                 Button("Add Komga server…", systemImage: "plus") { showAdd = true }
+                NavigationLink("Test Suwayomi connection") { SuwayomiConnectionView() }
             } footer: {
                 Text("Connect to a media server you run yourself. Passwords are stored in the Keychain. Plain http:// is only allowed for servers on your local network.")
             }
