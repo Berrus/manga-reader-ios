@@ -97,6 +97,8 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 
 iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes, VoiceOver, large CBZ files, long webtoon chapters and memory pressure. UI smoke tests do not replace this device pass. Webtoon slider jumps remain approximate with lazy placeholder heights; webtoon pinch zoom and zoom edge chaining are not implemented.
 
+The full feature checklist, including everything not implemented, is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
+
 Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, true background downloads (URLSession background sessions), iCloud/CloudKit sync, widget and Shortcuts, MyAnimeList/Kitsu trackers, localization catalogs, and the monthly source-update pipeline. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
 
 ## Content and licensing
