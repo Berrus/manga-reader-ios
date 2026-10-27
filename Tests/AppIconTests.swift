@@ -21,4 +21,10 @@ final class AppIconTests: XCTestCase {
             XCTAssertNotNil(UIImage(named: choice.preview), "Missing preview image \(choice.preview)")
         }
     }
+
+    func testOnlyTheTemporarilyUnavailableErrorIsRetried() {
+        XCTAssertTrue(AppIconPicker.isTransient(NSError(domain: NSPOSIXErrorDomain, code: 35)))
+        XCTAssertFalse(AppIconPicker.isTransient(NSError(domain: NSPOSIXErrorDomain, code: 2)))
+        XCTAssertFalse(AppIconPicker.isTransient(NSError(domain: NSCocoaErrorDomain, code: 35)))
+    }
 }
