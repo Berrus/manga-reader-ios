@@ -1,5 +1,6 @@
 import SwiftUI
 import AuthenticationServices
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(SourceStore.self) private var store
@@ -19,7 +20,8 @@ struct SettingsView: View {
                               contentType: .json, defaultFilename: "FolioReader-backup") { result in
                     if case .failure(let error) = result { message = error.localizedDescription }
                 }
-                .fileImporter(isPresented: $showRestorer, allowedContentTypes: [.json],
+                .fileImporter(isPresented: $showRestorer,
+                              allowedContentTypes: [.json, UTType(filenameExtension: "tachibk", conformingTo: .data) ?? .data],
                               onCompletion: restoreBackup)
                 .sheet(isPresented: $showSourceInstaller) { SourceInstallerView() }
                 .alert("Folio Reader", isPresented: Binding(
@@ -60,7 +62,7 @@ struct SettingsView: View {
             Button("Export backup…", systemImage: "square.and.arrow.up", action: exportBackup)
             Button("Restore backup…", systemImage: "square.and.arrow.down") { showRestorer = true }
         } header: { Text("Backup") }
-        footer: { Text("Backs up metadata, not comic files. Restore uses book identities and skips ambiguous title matches.") }
+        footer: { Text("Backs up metadata, not comic files. Folio JSON and Komikku .tachibk backups are supported. Komikku import applies progress only to unique title and chapter matches; it does not install sources or import comic files.") }
     }
     private var trackingSection: some View {
         Section {
@@ -110,8 +112,15 @@ struct SettingsView: View {
             defer { try? handle.close() }
             let data = try handle.read(upToCount: 10_000_001) ?? Data()
             guard data.count <= 10_000_000 else { throw TransportError.tooLarge }
-            let summary = try BackupService.restore(BackupService.decode(data), into: context)
-            message = "Restored \(summary.series) series and \(summary.chapters) chapters. Skipped \(summary.ambiguous) ambiguous series."
+            if data.first != UInt8(ascii: "{") {
+                let preview = try KomikkuBackupImporter.decode(data)
+                let summary = try BackupService.restore(preview.backup, into: context)
+                let unmatched = max(0, preview.seriesCount - summary.series)
+                message = "Komikku backup: restored progress for \(summary.series) of \(preview.seriesCount) series and \(summary.chapters) chapters. \(unmatched) series had no unique Folio match."
+            } else {
+                let summary = try BackupService.restore(BackupService.decode(data), into: context)
+                message = "Restored \(summary.series) series and \(summary.chapters) chapters. Skipped \(summary.ambiguous) ambiguous series."
+            }
         } catch { message = "Couldn't restore: \(error.localizedDescription)" }
     }
     private func connectAniList() {

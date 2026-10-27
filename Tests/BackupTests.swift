@@ -79,4 +79,25 @@ final class BackupTests: XCTestCase {
         XCTAssertEqual(chapters.map(\.id), ["a", "e"])
         XCTAssertEqual(chapters.first?.name, "Ch. 1 – Start")
     }
+    func testKomikkuGzipBackupRestoresMatchedProgressAndCategories() throws {
+        let fixture = "H4sIAAAAAAACA+PSlOINTswtyElVKE4tykwtbmIUEeJ0zkgsKEktUjBUYDRg9WVgaLDvYGQX4uViD0pNTMnMSxdglGAHAAN9YCE6AAAA"
+        let preview = try KomikkuBackupImporter.decode(Data(base64Encoded: fixture)!)
+        XCTAssertEqual(preview.seriesCount, 1)
+        XCTAssertEqual(preview.chapterCount, 1)
+        XCTAssertEqual(preview.backup.categories.map(\.name), ["Reading"])
+
+        let target = try context()
+        let local = series("Sample series", in: target, read: false, lastPage: 0)
+        let summary = try BackupService.restore(preview.backup, into: target)
+        XCTAssertEqual(summary.series, 1)
+        XCTAssertEqual(summary.chapters, 1)
+        XCTAssertTrue(local.chapters[0].isRead)
+        XCTAssertEqual(local.chapters[0].lastPage, 5)
+        XCTAssertNotNil(local.categoryID)
+    }
+
+    func testKomikkuImporterRejectsDamagedGzip() throws {
+        XCTAssertThrowsError(try KomikkuBackupImporter.decode(Data([0x1f, 0x8b, 0x00])))
+    }
+
 }

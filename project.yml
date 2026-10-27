@@ -12,6 +12,8 @@ settings:
     AppStore:
       SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
 packages:
+  CZlib:
+    path: Vendor/CZlib
   ZIPFoundation:
     url: https://github.com/weichsel/ZIPFoundation
     from: 0.9.19
@@ -22,6 +24,7 @@ targets:
     sources: [App, Core, Domain, Data, Features, Sources, Tracking, Downloads, Resources]
     dependencies:
       - package: ZIPFoundation
+      - package: CZlib
     info:
       path: Info.plist
       properties:
