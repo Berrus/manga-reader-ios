@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 
 /// Library metadata backup: categories, reading progress and tracker links. It does not contain
 /// the comic files themselves; restore matches series by title and chapters by name, so it works
-/// after files are re-imported.
+/// after files are re-imported. Version 3 also restores complete edition groups.
 struct BackupFile: Codable {
     struct CategoryEntry: Codable { var id: UUID; var name: String; var order: Int }
     struct ChapterEntry: Codable {
@@ -17,10 +17,11 @@ struct BackupFile: Codable {
         var chapters: [ChapterEntry]
         var sourceID: String? = nil
         var remoteID: String? = nil
+        var mergeGroupID: UUID? = nil
     }
     struct LinkEntry: Codable { var mangaID: UUID; var trackerID: String; var remoteId: Int; var remoteTitle: String }
 
-    var version = 2
+    var version = 3
     var createdAt = Date()
     var categories: [CategoryEntry] = []
     var series: [SeriesEntry] = []
@@ -48,7 +49,7 @@ enum BackupService {
                   chapters: manga.sortedChapters.map {
                       .init(name: $0.name, number: $0.number, pageCount: $0.pageCount,
                             lastPage: $0.lastPage, isRead: $0.isRead)
-                  }, sourceID: manga.sourceID, remoteID: manga.remoteID)
+                  }, sourceID: manga.sourceID, remoteID: manga.remoteID, mergeGroupID: manga.mergeGroupID)
         }
         file.trackLinks = try context.fetch(FetchDescriptor<TrackLink>())
             .map { .init(mangaID: $0.mangaID, trackerID: $0.trackerID, remoteId: $0.remoteId, remoteTitle: $0.remoteTitle) }
@@ -70,7 +71,7 @@ enum BackupService {
 
     /// Applies progress to series already in the library. Progress only moves forward.
     static func restore(_ file: BackupFile, into context: ModelContext) throws -> RestoreSummary {
-        guard (1...2).contains(file.version) else { throw JSSourceError.invalidManifest("Unsupported backup version.") }
+        guard (1...3).contains(file.version) else { throw JSSourceError.invalidManifest("Unsupported backup version.") }
         var summary = RestoreSummary()
         var categoryMap: [UUID: UUID] = [:]
         var existingCategories = try context.fetch(FetchDescriptor<Category>())
@@ -122,6 +123,16 @@ enum BackupService {
                 chapter.lastPage = max(chapter.lastPage, max(0, min(saved.lastPage, max(chapter.pageCount - 1, 0))))
                 if before != (chapter.isRead, chapter.lastPage) { summary.chapters += 1 }
             }
+        }
+        // Restore only complete groups. Ambiguous/missing editions never hide other entries.
+        let savedGroups = Dictionary(grouping: file.series.filter { $0.mergeGroupID != nil },
+                                     by: { $0.mergeGroupID! })
+        for entries in savedGroups.values {
+            let members = entries.compactMap { mangaMap[$0.id] }
+            guard members.count >= 2, members.count == entries.count,
+                  Set(members.map(\.id)).count == members.count else { continue }
+            let group = UUID()
+            members.forEach { $0.mergeGroupID = group }
         }
         var existingLinks = try context.fetch(FetchDescriptor<TrackLink>())
         for link in file.trackLinks {

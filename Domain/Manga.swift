@@ -30,6 +30,8 @@ final class Manga {
 
     @Attribute(.externalStorage) var coverData: Data?
     var categoryID: UUID?
+    /// Reversible visual grouping; original entries and source ownership remain intact.
+    var mergeGroupID: UUID?
     var lastReadAt: Date?
     var lastReadChapterName: String?
     /// Set for series added from Browse: which source and which id on that source.

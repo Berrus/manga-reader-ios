@@ -51,7 +51,8 @@ struct LibraryView: View {
         case .unread: items.sort { $0.unreadCount > $1.unreadCount }
         case .lastRead: items.sort { ($0.lastReadAt ?? .distantPast) > ($1.lastReadAt ?? .distantPast) }
         }
-        return items
+        var seenGroups = Set<UUID>()
+        return items.filter { seenGroups.insert($0.mergeGroupID ?? $0.id).inserted }
     }
 
     private var continueReading: [Manga] {
@@ -63,7 +64,7 @@ struct LibraryView: View {
             libraryContent
             .navigationTitle("Library")
             .searchable(text: $search, prompt: "Search library")
-            .navigationDestination(for: Manga.self) { MangaDetailView(manga: $0) }
+            .navigationDestination(for: Manga.self) { LibraryEntryView(manga: $0) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { sortMenu }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -237,7 +238,7 @@ struct LibraryView: View {
                                         Button(category.name) { manga.categoryID = category.id }
                                     }
                                 }
-                                Button("Delete", systemImage: "trash", role: .destructive) {
+                                Button(manga.mergeGroupID == nil ? "Delete" : "Delete this edition", systemImage: "trash", role: .destructive) {
                                     delete(manga)
                                 }
                             }
