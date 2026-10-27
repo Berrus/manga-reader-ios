@@ -44,4 +44,4 @@ Repositories are limited to 20 addresses, 1 MB per catalog and 200 entries. Refr
 The app remembers which repository each source came from. If a repository tries to install a
 source whose id is already installed but with different domains, or from a different repository,
 the confirmation shows a warning naming the old and new domains and the button becomes "Replace
-source". Plain updates (same domains, same repository) are unchanged.
+source". Plain updates (same domains, same repository) are unchanged. The same check applies to sources added by direct address (Settings > Add source), which records the address as the origin, and it is enforced inside `SourceStore.add`, so a caller that skips the warning gets an error instead of a silent replacement.

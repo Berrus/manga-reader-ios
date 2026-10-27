@@ -50,8 +50,15 @@ final class SourceStore {
         try Self.validate(manifest) // Data validation only; never runs code or requests endpoints.
         return manifest
     }
-    func add(_ manifest: JSSourceManifest, origin: String? = nil) throws {
+    /// Installs or updates a source. Replacing an installed source with different domains, or one that
+    /// came from a different address, throws `replacementNeedsConfirmation` unless the caller has
+    /// shown the warning and passes `allowReplacement: true`. This is enforced here so that no
+    /// install path (direct address, repository, or future ones) can skip it.
+    func add(_ manifest: JSSourceManifest, origin: String? = nil, allowReplacement: Bool = false) throws {
         try Self.validate(manifest)
+        try Self.checkReplacement(existing: manifests.first { $0.id == manifest.id },
+                                  existingOrigin: self.origin(of: manifest.id),
+                                  new: manifest, newOrigin: origin, allow: allowReplacement)
         let data = try JSONEncoder().encode(manifest)
         guard data.count <= Self.maxScriptBytes + 4096 else { throw TransportError.tooLarge }
         try data.write(to: directory.appendingPathComponent("\(manifest.id).json"), options: .atomic)
@@ -82,6 +89,14 @@ final class SourceStore {
         guard let existing = manifests.first(where: { $0.id == new.id }) else { return nil }
         return Self.replacementWarning(existing: existing, existingOrigin: self.origin(of: new.id),
                                        new: new, newOrigin: origin)
+    }
+
+    nonisolated static func checkReplacement(existing: JSSourceManifest?, existingOrigin: String?,
+                                             new: JSSourceManifest, newOrigin: String?, allow: Bool) throws {
+        guard !allow, let existing,
+              let warning = replacementWarning(existing: existing, existingOrigin: existingOrigin,
+                                               new: new, newOrigin: newOrigin) else { return }
+        throw SourceStoreError.replacementNeedsConfirmation(warning)
     }
 
     nonisolated static func replacementWarning(existing: JSSourceManifest, existingOrigin: String?,
@@ -142,6 +157,16 @@ final class SourceStore {
             guard required.allSatisfy({ endpoint.fields[$0] != nil }) else {
                 throw JSSourceError.invalidManifest("Missing required \(name) fields.")
             }
+        }
+    }
+}
+
+enum SourceStoreError: LocalizedError {
+    case replacementNeedsConfirmation(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .replacementNeedsConfirmation(let warning): return warning
         }
     }
 }

@@ -38,4 +38,32 @@ final class SourceReplacementTests: XCTestCase {
             existing: manifest(hosts: ["Example.com", "cdn.example.com"]), existingOrigin: nil,
             new: manifest(hosts: ["cdn.example.com", "example.COM"]), newOrigin: nil))
     }
+
+    func testInstallThrowsUntilTheReplacementIsConfirmed() {
+        let installed = manifest(hosts: ["example.com"])
+        let incoming = manifest(hosts: ["other.org"])
+        XCTAssertThrowsError(try SourceStore.checkReplacement(
+            existing: installed, existingOrigin: nil, new: incoming, newOrigin: "https://x.example/s.json", allow: false)) { error in
+            guard case SourceStoreError.replacementNeedsConfirmation(let text) = error else {
+                return XCTFail("wrong error \(error)")
+            }
+            XCTAssertTrue(text.contains("other.org"))
+        }
+        XCTAssertNoThrow(try SourceStore.checkReplacement(
+            existing: installed, existingOrigin: nil, new: incoming, newOrigin: "https://x.example/s.json", allow: true))
+    }
+
+    func testFirstInstallAndHarmlessUpdatesNeverThrow() {
+        XCTAssertNoThrow(try SourceStore.checkReplacement(
+            existing: nil, existingOrigin: nil, new: manifest(), newOrigin: nil, allow: false))
+        XCTAssertNoThrow(try SourceStore.checkReplacement(
+            existing: manifest(), existingOrigin: "https://a.example/s.json",
+            new: manifest(version: "2"), newOrigin: "https://a.example/s.json", allow: false))
+    }
+
+    func testDirectInstallFromAnotherAddressIsTreatedLikeAnotherRepository() {
+        XCTAssertThrowsError(try SourceStore.checkReplacement(
+            existing: manifest(), existingOrigin: "https://a.example/s.json",
+            new: manifest(), newOrigin: "https://evil.example/s.json", allow: false))
+    }
 }
