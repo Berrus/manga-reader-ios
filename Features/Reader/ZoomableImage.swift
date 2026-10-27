@@ -15,8 +15,8 @@ final class ZoomScrollView: UIScrollView {
         addSubview(imageView)
 
         minimumZoomScale = 1
-
         maximumZoomScale = 4
+        alwaysBounceHorizontal = true   // lets a zoomed page be pulled past its edge to turn the page
 
         bouncesZoom = true
 
@@ -56,8 +56,10 @@ struct ZoomableImage: UIViewRepresentable {
 
     /// Receives the tap position as 0...1 across the width (0.5 while zoomed in).
     var onSingleTap: (CGFloat) -> Void = { _ in }
+    /// Called with -1 or +1 (screen left or right) when a zoomed page is pulled past that edge.
+    var onEdgeSwipe: (Int) -> Void = { _ in }
 
-    func makeCoordinator() -> Coordinator { Coordinator(onSingleTap: onSingleTap) }
+    func makeCoordinator() -> Coordinator { Coordinator(onSingleTap: onSingleTap, onEdgeSwipe: onEdgeSwipe) }
 
     func makeUIView(context: Context) -> ZoomScrollView {
 
@@ -95,6 +97,8 @@ struct ZoomableImage: UIViewRepresentable {
     func updateUIView(_ scroll: ZoomScrollView, context: Context) {
 
         context.coordinator.onSingleTap = onSingleTap
+        context.coordinator.onEdgeSwipe = onEdgeSwipe
+
 
         if scroll.imageView.image !== image {
 
@@ -111,10 +115,23 @@ struct ZoomableImage: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate {
 
         var onSingleTap: (CGFloat) -> Void
-
+        var onEdgeSwipe: (Int) -> Void
         weak var scrollView: ZoomScrollView?
 
-        init(onSingleTap: @escaping (CGFloat) -> Void) { self.onSingleTap = onSingleTap }
+        init(onSingleTap: @escaping (CGFloat) -> Void, onEdgeSwipe: @escaping (Int) -> Void) {
+            self.onSingleTap = onSingleTap
+            self.onEdgeSwipe = onEdgeSwipe
+        }
+
+        /// A zoomed page keeps all drags, so pulling it clearly past either edge turns the page instead.
+        func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+            guard scrollView.zoomScale > 1.01 else { return }
+            let pull: CGFloat = 60
+            let minX = -scrollView.contentInset.left
+            let maxX = scrollView.contentSize.width - scrollView.bounds.width + scrollView.contentInset.right
+            if scrollView.contentOffset.x < minX - pull { onEdgeSwipe(-1) }
+            else if scrollView.contentOffset.x > maxX + pull { onEdgeSwipe(1) }
+        }
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
 
