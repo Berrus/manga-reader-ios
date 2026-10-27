@@ -140,7 +140,9 @@ final class MangaReaderUITests: XCTestCase {
         let custom = app.switches["Enable custom sources"]
         for _ in 0..<4 where !custom.exists { app.swipeUp() }
         XCTAssertTrue(custom.exists)
-        if (custom.value as? String) == "0" { custom.tap() }
+        // A plain tap hits the row's label in a Form, not the switch, so tap the switch at the right edge.
+        if (custom.value as? String) == "0" { custom.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
+        XCTAssertEqual(custom.value as? String, "1", "Enable custom sources did not turn on")
         let repositories = app.descendants(matching: .any).matching(identifier: "sourceRepositories").firstMatch
         for _ in 0..<4 where !repositories.exists { app.swipeUp() }
         XCTAssertTrue(repositories.waitForExistence(timeout: 10))
