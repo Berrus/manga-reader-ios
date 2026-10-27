@@ -17,7 +17,12 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 
 struct LibraryView: View {
     @Environment(\.modelContext) private var context
-    @Query(sort: \Manga.addedAt, order: .reverse) private var library: [Manga]
+    @Query(sort: \Manga.addedAt, order: .reverse) private var allLibrary: [Manga]
+    private var lock: PrivacyLock { .shared }
+    private var library: [Manga] {
+        PrivacyFilter.visible(allLibrary, categories: categories, unlocked: lock.isUnlocked)
+    }
+    private var shownCategories: [Category] { categories.filter { !$0.isPrivate || lock.isUnlocked } }
     @Query(sort: \Category.order) private var categories: [Category]
     @State private var selectedCategory: UUID?
     @AppStorage("librarySort") private var sortRaw = LibrarySort.recent.rawValue
@@ -68,7 +73,9 @@ struct LibraryView: View {
             .searchable(text: $search, prompt: "Search library")
             .navigationDestination(for: Manga.self) { LibraryEntryView(manga: $0) }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { sortMenu }
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack { sortMenu; privacyButton }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack {
                         if !library.isEmpty {
@@ -85,6 +92,11 @@ struct LibraryView: View {
                 if isSelecting { selectionBar }
             }
             .onChange(of: visible.map(\.id)) { _, ids in selected.formIntersection(Set(ids)) }
+            .onChange(of: lock.isUnlocked) { _, unlocked in
+                if !unlocked, let id = selectedCategory, categories.first(where: { $0.id == id })?.isPrivate == true {
+                    selectedCategory = nil
+                }
+            }
             .fileImporter(isPresented: $showImporter,
                           allowedContentTypes: UTType.comicArchives,
                           allowsMultipleSelection: true) { result in
@@ -125,7 +137,7 @@ struct LibraryView: View {
                             if !isSelecting && !hasFilters && selectedCategory == nil && search.isEmpty && !continueReading.isEmpty {
                                 shelf
                             }
-                            if !categories.isEmpty { categoryBar }
+                            if !shownCategories.isEmpty { categoryBar }
                             grid
                         }
                         .padding()
@@ -133,6 +145,17 @@ struct LibraryView: View {
                     }
                 }
             }
+    }
+
+    @ViewBuilder private var privacyButton: some View {
+        if categories.contains(where: \.isPrivate) {
+            Button {
+                if lock.isUnlocked { lock.lock() } else { Task { await lock.unlock() } }
+            } label: {
+                Image(systemName: lock.isUnlocked ? "lock.open" : "lock")
+            }
+            .accessibilityLabel(lock.isUnlocked ? "Hide private categories" : "Show private categories")
+        }
     }
 
     private var sortMenu: some View {
@@ -162,7 +185,7 @@ struct LibraryView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 chip("All", selected: selectedCategory == nil) { selectedCategory = nil }
-                ForEach(categories) { category in
+                ForEach(shownCategories) { category in
                     chip(category.name, selected: selectedCategory == category.id) {
                         selectedCategory = category.id
                     }

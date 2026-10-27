@@ -4,7 +4,11 @@ import SwiftData
 struct UpdatesView: View {
     @Environment(\.modelContext) private var context
     @Query(filter: #Predicate<Manga> { $0.lastUpdatedAt != nil },
-           sort: \Manga.lastUpdatedAt, order: .reverse) private var updated: [Manga]
+           sort: \Manga.lastUpdatedAt, order: .reverse) private var allUpdated: [Manga]
+    @Query private var categories: [Category]
+    private var updated: [Manga] {
+        PrivacyFilter.visible(allUpdated, categories: categories, unlocked: PrivacyLock.shared.isUnlocked)
+    }
     @State private var updater = LibraryUpdater.shared
     private var days: [Date] {
         Array(Set(updated.compactMap { $0.lastUpdatedAt.map { Calendar.current.startOfDay(for: $0) } })).sorted(by: >)

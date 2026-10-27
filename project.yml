@@ -36,6 +36,7 @@ targets:
           - fetch
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        NSFaceIDUsageDescription: Folio Reader uses Face ID to open your private categories.
         NSLocalNetworkUsageDescription: Folio Reader connects to media servers on your local network that you add.
         UILaunchScreen: {}
         UIApplicationSceneManifest:

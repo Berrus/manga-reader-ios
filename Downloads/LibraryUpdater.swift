@@ -59,7 +59,7 @@ final class LibraryUpdater {
             do {
                 let new = try await refresh(manga)
                 summary.newChapters += new.count
-                if !new.isEmpty && noticeTitle == nil { noticeTitle = manga.title; noticeCover = manga.coverData }
+                if !new.isEmpty && noticeTitle == nil && !isPrivate(manga) { noticeTitle = manga.title; noticeCover = manga.coverData }
                 toDownload += AutoDownloadPolicy.candidates(for: manga, scope: DownloadSettings.scope,
                                                             ahead: DownloadSettings.ahead, newChapters: new)
             } catch is CancellationError {
@@ -86,6 +86,13 @@ final class LibraryUpdater {
         lastSummary = summary
         await UpdateNotifications.shared.post(count: summary.newChapters, title: noticeTitle, cover: noticeCover)
         return summary
+    }
+
+    /// Private series never put their title or cover in a notification, even while unlocked.
+    private func isPrivate(_ manga: Manga) -> Bool {
+        guard let id = manga.categoryID, let context = manga.modelContext else { return false }
+        let categories = (try? context.fetch(FetchDescriptor<Category>())) ?? []
+        return PrivacyFilter.privateCategoryIDs(categories).contains(id)
     }
 
     /// Fetches the chapter list for one series and adds any chapters we haven't seen.

@@ -7,7 +7,7 @@ import UniformTypeIdentifiers
 /// the comic files themselves; restore matches series by title and chapters by name, so it works
 /// after files are re-imported. Version 3 also restores complete edition groups.
 struct BackupFile: Codable {
-    struct CategoryEntry: Codable { var id: UUID; var name: String; var order: Int }
+    struct CategoryEntry: Codable { var id: UUID; var name: String; var order: Int; var isPrivate: Bool? }
     struct ChapterEntry: Codable {
         var name: String; var number: Double; var pageCount: Int; var lastPage: Int; var isRead: Bool
     }
@@ -41,7 +41,7 @@ enum BackupService {
     static func snapshot(context: ModelContext) throws -> BackupFile {
         var file = BackupFile()
         file.categories = try context.fetch(FetchDescriptor<Category>(sortBy: [SortDescriptor(\.order)]))
-            .map { .init(id: $0.id, name: $0.name, order: $0.order) }
+            .map { .init(id: $0.id, name: $0.name, order: $0.order, isPrivate: $0.isPrivate) }
         file.series = try context.fetch(FetchDescriptor<Manga>()).map { manga in
             .init(id: manga.id, title: manga.title, direction: manga.directionRaw, readerMode: manga.readerModeRaw,
                   categoryID: manga.categoryID, lastReadAt: manga.lastReadAt,
@@ -78,8 +78,11 @@ enum BackupService {
         for entry in file.categories {
             if let match = existingCategories.first(where: { $0.name.caseInsensitiveCompare(entry.name) == .orderedSame }) {
                 categoryMap[entry.id] = match.id
+                // A restore can make a category private but never reveals one that is private now.
+                if entry.isPrivate == true { match.isPrivate = true }
             } else {
                 let category = Category(name: entry.name, order: entry.order)
+                category.isPrivate = entry.isPrivate == true
                 context.insert(category)
                 existingCategories.append(category)
                 categoryMap[entry.id] = category.id

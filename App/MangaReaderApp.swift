@@ -50,6 +50,7 @@ struct MangaReaderApp: App {
                         DownloadManager.shared.resume(context: container.mainContext)
                     }
                 } else if phase == .background {
+                    PrivacyLock.shared.lock()
                     BackgroundRefresh.schedule()
                 }
             }

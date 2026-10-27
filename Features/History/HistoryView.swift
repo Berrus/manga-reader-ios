@@ -4,7 +4,11 @@ import SwiftData
 struct HistoryView: View {
     @Query(filter: #Predicate<Manga> { $0.lastReadAt != nil },
            sort: \Manga.lastReadAt, order: .reverse)
-    private var history: [Manga]
+    private var allHistory: [Manga]
+    @Query private var categories: [Category]
+    private var history: [Manga] {
+        PrivacyFilter.visible(allHistory, categories: categories, unlocked: PrivacyLock.shared.isUnlocked)
+    }
 
     var body: some View {
         NavigationStack {
