@@ -50,6 +50,7 @@ struct SettingsView: View {
             NavigationLink("Reader") { ReaderPreferencesView() }
             NavigationLink("Categories") { CategoriesView() }
             NavigationLink("Servers") { ServersView() }
+            NavigationLink("Notifications") { NotificationSettingsView() }
             NavigationLink("Updates") { UpdatesView() }
             NavigationLink("Downloads") { DownloadsSettingsView() }
         }

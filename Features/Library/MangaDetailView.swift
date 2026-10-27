@@ -32,6 +32,7 @@ struct MangaDetailView: View {
             }
 
             Section("Library tools") {
+                NavigationLink("View full cover") { FullCoverView(title: manga.title, data: manga.coverData) }
                 NavigationLink("Merge editions") { MergeEntriesView(manga: manga) }
                 NavigationLink("Migrate source") { SourceMigrationView(manga: manga) }
                 NavigationLink("Library suggestions") { LibraryRecommendationsView(manga: manga) }
