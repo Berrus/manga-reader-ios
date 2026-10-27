@@ -23,8 +23,8 @@ enum MyAnimeListAuthError: LocalizedError {
 final class MyAnimeListAuth {
     static let shared = MyAnimeListAuth()
 
-    static let callbackScheme = "folioreader"
-    static let redirectURI = "folioreader://mal"
+    nonisolated static let callbackScheme = "folioreader"
+    nonisolated static let redirectURI = "folioreader://mal"
     private static let accessKey = "mal.access"
     private static let refreshKey = "mal.refresh"
     private static let expiryKey = "mal.expiry"
