@@ -7,6 +7,7 @@ struct SuwayomiConnectionView: View {
     @State private var password = ""
     @State private var busy = false
     @State private var message: String?
+    @State private var sources: [SuwayomiResponse.Source] = []
 
     var body: some View {
         Form {
@@ -18,9 +19,19 @@ struct SuwayomiConnectionView: View {
                 SecureField("Password (optional)", text: $password)
                 Button(busy ? "Testing…" : "Test connection", action: test).disabled(busy)
             } footer: {
-                Text("This connection test supports HTTPS and optional HTTP Basic authentication. It does not save the server or install sources.")
+                Text("This connection test supports HTTPS and optional HTTP Basic authentication. It lists up to 200 installed sources. It does not save the server, install sources, or read manga.")
             }
             if let message { Section { Text(message) } }
+            if !sources.isEmpty {
+                Section("Installed sources (first 200)") {
+                    ForEach(sources, id: \.id) { source in
+                        VStack(alignment: .leading) {
+                            Text(source.displayName)
+                            Text(source.lang).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
         }
         .navigationTitle("Suwayomi")
     }
@@ -39,26 +50,31 @@ struct SuwayomiConnectionView: View {
             let token = Data("\(username):\(password)".utf8).base64EncodedString()
             request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
         }
-        request.httpBody = try? JSONSerialization.data(withJSONObject: ["query": "{ aboutServer { name version } }"])
-        busy = true; message = nil
+        request.httpBody = try? JSONSerialization.data(withJSONObject: ["query": "{ aboutServer { name version } sources(first: 200) { nodes { id displayName lang } } }"])
+        busy = true; message = nil; sources = []
         Task {
             defer { busy = false }
             do {
                 let (data, _) = try await SourceTransport.load(request, policy: policy, maxBytes: 100_000)
-                let result = try JSONDecoder().decode(ServerResponse.self, from: data)
-                guard let server = result.data?.aboutServer else {
+                let result = try JSONDecoder().decode(SuwayomiResponse.self, from: data)
+                guard result.errors?.isEmpty != false, let server = result.data?.aboutServer,
+                      let installed = result.data?.sources?.nodes else {
                     throw JSSourceError.invalidManifest("Server did not return Suwayomi information.")
                 }
-                message = "Connected to \(server.name), version \(server.version)."
+                sources = installed
+                message = "Connected to \(server.name), version \(server.version). Found \(installed.count) installed sources (up to 200)."
             } catch { message = "Connection failed: \(error.localizedDescription)" }
         }
     }
 
-    private struct ServerResponse: Decodable {
-        struct ResponseData: Decodable {
-            struct Server: Decodable { let name: String; let version: String }
-            let aboutServer: Server?
-        }
-        let data: ResponseData?
-    }
+}
+
+struct SuwayomiResponse: Decodable {
+    struct Source: Decodable { let id: String; let displayName: String; let lang: String }
+    struct Server: Decodable { let name: String; let version: String }
+    struct SourceList: Decodable { let nodes: [Source] }
+    struct ResponseData: Decodable { let aboutServer: Server?; let sources: SourceList? }
+    struct GraphQLError: Decodable { let message: String }
+    let data: ResponseData?
+    let errors: [GraphQLError]?
 }
