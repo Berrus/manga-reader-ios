@@ -111,7 +111,7 @@ iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes
 
 The full feature checklist, including everything not implemented, is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
-Not built yet (from the handoff): EPUB (needs the Readium toolkit), Kavita and OPDS clients, true background downloads (URLSession background sessions), iCloud/CloudKit sync, widget and Shortcuts, a Kitsu tracker, localization catalogs, and the monthly source-update pipeline. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
+Not built yet (from the handoff): a text EPUB reader (comic EPUBs work), Kavita's REST API (its OPDS feed works), a native macOS target (see docs/MACOS_NATIVE.md), widget and Shortcuts, localization catalogs, and the monthly source-update pipeline. iCloud sync, background downloads, OPDS, EPUB, Kitsu and MangaDex recommendations exist as code and need real devices, servers and accounts to verify. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
 
 ## Content and licensing
 

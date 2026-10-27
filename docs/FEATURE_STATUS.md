@@ -15,36 +15,41 @@ Legend: 🟢 implemented · 🟠 partial or needs verification · 🔴 not imple
 | **Themes** | 🟠 Partial | Accent palettes and a cover-derived **reader background** exist. Komikku's broader cover-based entry and reader theming is not established as equivalent. |
 | **Autoscroll and cache settings** | 🟢 Implemented | Webtoon autoscroll, preload and memory-cache controls. |
 | **Saved searches and feed** | 🟠 Partial | Saved searches and a feed based on saved queries exist. This is not necessarily the same as Komikku's source-wide feed. |
-| **Recommendations** | 🟠 Partial | Folio suggests titles **already in your library**. Source-provided related titles and recommendations are not implemented. |
+| **Recommendations** | 🟠 Partial | Folio suggests titles **already in your library**. MangaDex also provides related works and similar genres ("Similar titles" on its series page). Other sources offer none. |
 | **Merge editions and migrate sources** | 🟠 Code present | Merge/unmerge and migration with a mapping preview are present. Behaviour on Apple platforms needs verification. |
 | **Backup and restore** | 🟢 Implemented | Folio backup/restore and Komikku backup import. Compatibility with a specific real backup still needs testing. |
-| **Tracking** | 🟠 Partial | AniList and MyAnimeList (PKCE sign-in, token refresh, forward-only sync). Both need a client ID and a real-account test. Kitsu is outstanding. |
+| **Tracking** | 🟠 Code present; needs real accounts | AniList, MyAnimeList (PKCE sign-in, token refresh) and Kitsu (email/password exchanged for tokens), all with forward-only sync. AniList and MyAnimeList need a client ID. None has been tried against a real account. |
 | **Suwayomi** | 🟠 Code present; needs testing | Server saving, source browsing, search, reading, downloads and library support. Open [PR #19](https://github.com/Berrus/manga-reader-ios/pull/19) carries this work (open and mergeable; its simulator checks passed except the App Store UI test, fixed on the branch but not re-run). The GraphQL calls have not been run against a real server. See [SUWAYOMI.md](SUWAYOMI.md). |
 | **Paperback repositories/extensions** | 🔴 Not compatible | Folio uses its own declarative JSON source repositories ([SOURCES.md](SOURCES.md)). Paperback extensions are not compatible. |
 | **Keiyoushi Android extensions** | 🔴 Not directly compatible | Android APK extensions cannot run in a Swift app. A Suwayomi server may provide an indirect route, subject to testing and the server's installed sources. |
-| **iCloud sync** | 🔴 Not implemented | Needs a defined sync scope, Apple configuration (container, entitlements) and conflict handling. Credentials must never sync. |
+| **iCloud sync** | 🟠 Code present; off by default | Opt-in sync of categories, progress and tracker links through iCloud Drive (one file per device, forward-only merge, no write conflicts). Needs the iCloud entitlement and a paid developer account, so it is not enabled in the default build, and it has not been run on two devices. See [ICLOUD_SYNC.md](ICLOUD_SYNC.md). |
 | **Full-cover display** | 🟠 Code present; verify | A full-cover view with sharing exists. Its current UI and sharing behaviour need checking. |
-| **Webtoon pinch zoom** | 🟠 Code present; needs device testing | Pinch from 1x to 3x with sideways scrolling, and double-tap to zoom or reset. Zoomed pages use the normal-resolution bitmap, so they are a little soft above 2x. Zoom edge-chaining in paged mode is still missing. |
+| **Webtoon pinch zoom** | 🟠 Code present; needs device testing | Pinch from 1x to 3x with sideways scrolling, and double-tap to zoom or reset. Zoomed pages use the normal-resolution bitmap, so they are a little soft above 2x. Zoom edge-chaining is covered in the next row. |
+| **Paged-mode zoom edge-chaining** | 🟠 Code present; needs device testing | Pulling a zoomed page past its left or right edge turns the page (direction follows right-to-left reading). |
+| **EPUB** | 🟠 Partial | Comic EPUBs (image-based books, read in spine order) import and read like CBZ files. Reflowable text EPUBs are rejected; there is no text reader. |
+| **Kavita and OPDS** | 🟠 Code present; needs a real server | OPDS catalog client with page streaming ([OPDS.md](OPDS.md)); Kavita works through its OPDS URL. Kavita's REST API is not implemented. |
+| **Background downloads** | 🟠 Code present; off by default | "Keep downloading when the app is closed" hands pages to a background URL session; chapters complete the next time the app opens. Needs device testing. |
+| **Native macOS target** | 🔴 Not built | Mac Catalyst is the desktop target. See the assessment in [MACOS_NATIVE.md](MACOS_NATIVE.md). |
 
 ## Not implemented (checklist)
 
-Everything above marked 🔴, plus items from the original handoff and release plan:
-
-- [ ] Zoom edge-chaining in paged mode, and higher-resolution decoding for zoomed webtoon pages.
-- [ ] iCloud/CloudKit sync (scope, identity matching, conflict handling, two-device tests).
-- [ ] Kitsu tracker (check the service's API terms and authentication).
-- [ ] Source-provided recommendations and related titles.
+- [ ] Reflowable (text) EPUB reader, and Kavita's native REST API (OPDS works).
+- [ ] Higher-resolution decoding for zoomed webtoon pages.
+- [ ] Recommendations from sources other than MangaDex.
 - [ ] Broader cover-based theming of entries and the reader.
-- [ ] EPUB support (needs the Readium toolkit).
-- [ ] Kavita and OPDS clients.
-- [ ] True background downloads (URLSession background sessions); today downloads run while the app is active plus iOS's short grace period.
+- [ ] Native macOS target (assessed, see [MACOS_NATIVE.md](MACOS_NATIVE.md)).
 - [ ] Widget and Shortcuts actions; localization catalogs.
-- [ ] Native macOS target (Mac Catalyst is the supported desktop target today).
 - [ ] The monthly source-update pipeline and remote kill switch for sources.
 - [ ] Release work: registered bundle ID and signing team, IPA/TestFlight, privacy policy and support URLs, final privacy disclosures, owned sample content, physical-device checks. See [APP_STORE_SUBMISSION.md](APP_STORE_SUBMISSION.md) and [NEXT_SESSION.md](NEXT_SESSION.md).
 
 ## Needs verification, not new code
 
+- [ ] iCloud sync on two real devices with the entitlement enabled.
+- [ ] Comic EPUB import with real files from several publishers.
+- [ ] OPDS against a real Kavita (and Komga) server.
+- [ ] Kitsu sign-in and sync with a real account.
+- [ ] Background downloads: start a large chapter, close the app, reopen.
+- [ ] Zoom edge-chaining and webtoon pinch zoom on a real device.
 - [ ] Real-server run of the Suwayomi flow (connection, sources, search, chapters, pages) and its chapter ordering.
 - [ ] Merge/unmerge and source migration on a real library.
 - [ ] Komikku backup import with a real `.tachibk` file.
