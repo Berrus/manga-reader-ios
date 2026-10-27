@@ -1,6 +1,8 @@
-# Design note: optional JavaScript sources (not built)
+# Design note: optional JavaScript sources
 
-Status: proposal for approval. Nothing here is implemented.
+Status: implemented in the non-App-Store configuration, not built or run in CI yet. Differences from this note:
+no HTML selector helper (scripts parse text themselves), no repository catalog (a single manifest address is
+added), no Face ID gate. See docs/SOURCES.md for the shipped format.
 
 ## Goal
 

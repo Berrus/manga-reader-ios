@@ -45,3 +45,31 @@ The app remembers which repository each source came from. If a repository tries 
 source whose id is already installed but with different domains, or from a different repository,
 the confirmation shows a warning naming the old and new domains and the button becomes "Replace
 source". Plain updates (same domains, same repository) are unchanged.
+
+
+## Scripted (JavaScript) sources — non-App-Store builds only
+
+Settings → Installed sources → Scripted sources. Off by default, separate from declarative sources, and the
+code is not compiled into the `AppStore` configuration (`DistributionPolicy.allowsScriptedSources` is false there).
+No sources or repositories are included; paste the address of a manifest:
+
+```json
+{"id":"example","name":"Example","version":"1","hosts":["example.com","cdn.example.com"],
+ "entry":"https://example.com/source.js","sha256":"<hex SHA-256 of the script file>"}
+```
+
+The script is downloaded over HTTPS (max 256 KB) and must match `sha256`; it is re-checked on every load.
+It defines global functions that return plain data:
+
+```js
+function search(query, page) { return [{id: "1", title: "Name", coverURL: "https://cdn.example.com/c.jpg"}]; }
+function details(id)  { return {title: "Name", author: "A", summary: "S", coverURL: "..."}; }
+function chapters(id) { return [{id: "c1", name: "Chapter 1", number: 1}]; }
+function pages(id)    { return [{url: "https://cdn.example.com/1.jpg"}]; }
+```
+
+The only host functions are `http.get(url, headers)` → `{status, body}` (declared HTTPS hosts only, no cookies or
+Authorization, 10 MB, 30 calls per run) and `log(text)`. There is no DOM: parse `body` with JavaScript string and
+regular-expression functions. Limits: 20 s per call, 1000 items per result. JavaScriptCore cannot be interrupted, so a
+script that never returns keeps its thread until the app quits; after three such runs scripted sources stop running.
+Image URLs must be on declared hosts. Paperback and Aidoku packages are not compatible.

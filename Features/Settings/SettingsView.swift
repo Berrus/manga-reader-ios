@@ -123,6 +123,9 @@ struct SettingsView: View {
             Button("Add source…", systemImage: "plus") { showSourceInstaller = true }
             NavigationLink("Source repositories") { SourceRepositoriesView() }
                 .accessibilityIdentifier("sourceRepositories")
+            #if !APP_STORE
+            NavigationLink("Scripted sources") { ScriptedSourcesView() }
+            #endif
         }
     }
     private func exportBackup() {
