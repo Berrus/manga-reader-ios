@@ -21,6 +21,7 @@ struct ServersView: View {
                 if DistributionPolicy.allowsSuwayomi {
                     Button("Add Suwayomi server…", systemImage: "plus") { addKind = .suwayomi }
                 }
+                Button("Add OPDS catalog (Kavita, …)…", systemImage: "plus") { addKind = .opds }
             } footer: {
                 Text("Connect to a media server you run yourself. Passwords are stored in the Keychain. Plain http:// is only allowed for servers on your local network. Suwayomi servers host extensions from third parties; what appears depends on your server.")
             }
@@ -40,6 +41,14 @@ struct AddServerView: View {
     @State private var status: String?
     @State private var isTesting = false
 
+    private static func placeholder(for kind: ServerConfig.Kind) -> String {
+        switch kind {
+        case .komga: return "http://192.168.1.10:25600"
+        case .suwayomi: return "http://192.168.1.10:4567"
+        case .opds: return "http://192.168.1.10:5000/api/opds/<your key>"
+        }
+    }
+
     private var config: ServerConfig {
         ServerConfig(kind: kind, name: name.isEmpty ? url : name, url: url, username: username)
     }
@@ -49,7 +58,7 @@ struct AddServerView: View {
             Form {
                 Section {
                     TextField("Name", text: $name)
-                    TextField(kind == .komga ? "http://192.168.1.10:25600" : "http://192.168.1.10:4567", text: $url)
+                    TextField(Self.placeholder(for: kind), text: $url)
                         .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                     TextField(kind == .komga ? "Username" : "Username (optional)", text: $username)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -85,6 +94,13 @@ struct AddServerView: View {
             Task {
                 defer { isTesting = false }
                 do { try await source.testConnection(); status = "Connected." }
+                catch { status = error.localizedDescription }
+            }
+        case .opds:
+            guard let source = OPDSSource(config: config, password: password) else { status = invalid; isTesting = false; return }
+            Task {
+                defer { isTesting = false }
+                do { status = "Connected to \(try await source.testConnection())." }
                 catch { status = error.localizedDescription }
             }
         case .suwayomi:

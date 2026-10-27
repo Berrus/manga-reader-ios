@@ -3,9 +3,15 @@ import Observation
 
 struct ServerConfig: Codable, Identifiable, Hashable {
     enum Kind: String, Codable, Identifiable {
-        case komga, suwayomi
+        case komga, suwayomi, opds
         var id: String { rawValue }
-        var label: String { self == .komga ? "Komga" : "Suwayomi" }
+        var label: String {
+            switch self {
+            case .komga: return "Komga"
+            case .suwayomi: return "Suwayomi"
+            case .opds: return "OPDS"
+            }
+        }
     }
 
     var id = UUID()
@@ -63,6 +69,7 @@ final class ServerStore {
     func source(for server: ServerConfig) -> (any Source)? {
         switch server.kind {
         case .komga: return KomgaSource(config: server, password: password(for: server))
+        case .opds: return OPDSSource(config: server, password: password(for: server))
         case .suwayomi: return nil
         }
     }

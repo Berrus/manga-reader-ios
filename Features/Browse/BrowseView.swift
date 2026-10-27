@@ -4,7 +4,7 @@ import SwiftData
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
     private var servers: ServerStore { .shared }
-    private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind == .komga } }
+    private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind != .suwayomi } }
     private var suwayomiServers: [ServerConfig] {
         DistributionPolicy.allowsSuwayomi ? servers.servers.filter { $0.kind == .suwayomi } : []
     }

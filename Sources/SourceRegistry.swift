@@ -23,6 +23,10 @@ enum SourceRegistry {
            let server = ServerStore.shared.servers.first(where: { $0.id == uuid }) {
             return ServerStore.shared.source(for: server)
         }
+        if id.hasPrefix("opds."), let uuid = UUID(uuidString: String(id.dropFirst("opds.".count))),
+           let server = ServerStore.shared.servers.first(where: { $0.id == uuid }) {
+            return ServerStore.shared.source(for: server)
+        }
         if let parsed = SuwayomiSource.parseID(id) {
             return ServerStore.shared.suwayomiSource(serverID: parsed.server, sourceID: parsed.source)
         }
