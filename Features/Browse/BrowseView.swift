@@ -207,6 +207,7 @@ struct SourceMangaView: View {
         _existing = Query(filter: #Predicate<Manga> { $0.sourceID == sourceID && $0.remoteID == remoteID })
     }
     @State private var details: MangaDetails?
+    @State private var similar: [MangaSummary] = []
     @State private var chapters: [ChapterSummary] = []
     @State private var isLoading = true
     @State private var error: String?
@@ -222,6 +223,27 @@ struct SourceMangaView: View {
             }
             if let error {
                 Section { Text(error).foregroundStyle(.red) }
+            }
+            if !similar.isEmpty {
+                Section {
+                    ForEach(similar) { item in
+                        NavigationLink {
+                            SourceMangaView(source: source, manga: item)
+                        } label: {
+                            HStack(spacing: 12) {
+                                RemoteImage(url: item.coverURL.flatMap(URL.init(string:)),
+                                            headers: source.imageHeaders, policy: source.accessPolicy)
+                                    .frame(width: 36, height: 52)
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                Text(item.title).lineLimit(2)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Similar titles")
+                } footer: {
+                    Text("Suggested by \(source.name). Only this title's id is sent to ask for them.")
+                }
             }
             Section("Chapters") {
                 ForEach(chapters) { chapter in
@@ -247,6 +269,7 @@ struct SourceMangaView: View {
         }
         .overlay { if isLoading { ProgressView() } }
         .task { await load() }
+        .task { similar = (try? await source.related(to: manga)) ?? [] }
     }
 
         /// Saves the series and its chapter list so it can be downloaded and read offline.

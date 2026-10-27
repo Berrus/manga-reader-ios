@@ -33,6 +33,57 @@ struct MangaDexSource: Source {
         }
     }
 
+    func related(to manga: MangaSummary) async throws -> [MangaSummary] {
+        let detail: One<MangaItem> = try await get("/manga/\(manga.id)", [])
+        let relatedIDs = Self.relatedIDs(of: detail.data)
+        let tagIDs = Self.similarTagIDs(of: detail.data)
+        var found: [MangaItem] = []
+        if !relatedIDs.isEmpty {
+            let query = Self.listingQuery() + relatedIDs.map { URLQueryItem(name: "ids[]", value: $0) }
+            found += (try await get("/manga", query) as List<MangaItem>).data
+        }
+        if !tagIDs.isEmpty {
+            found += (try await get("/manga", Self.similarQuery(tagIDs: tagIDs)) as List<MangaItem>).data
+        }
+        return Self.dedupe(found, excluding: manga.id).map {
+            MangaSummary(id: $0.id, title: Self.title(from: $0.attributes.title), coverURL: Self.coverURL(for: $0))
+        }
+    }
+
+    // MARK: Recommendations (pure, unit tested)
+
+    /// Works the author linked as related (sequels, spin-offs, adaptations), at most 6.
+    static func relatedIDs(of item: MangaItem) -> [String] {
+        Array(item.relationships.filter { $0.type == "manga" }.compactMap(\.id).prefix(6))
+    }
+
+    /// Up to 3 genre/theme tags. Content and format tags are left out so suggestions stay broad and safe.
+    static func similarTagIDs(of item: MangaItem) -> [String] {
+        Array((item.attributes.tags ?? []).filter { $0.attributes?.group == "genre" || $0.attributes?.group == "theme" }
+            .map(\.id).prefix(3))
+    }
+
+    private static let suggestionLimit = 12
+
+    static func listingQuery() -> [URLQueryItem] {
+        [URLQueryItem(name: "limit", value: String(suggestionLimit)),
+         URLQueryItem(name: "includes[]", value: "cover_art")]
+            + ratings.map { URLQueryItem(name: "contentRating[]", value: $0) }
+    }
+
+    static func similarQuery(tagIDs: [String]) -> [URLQueryItem] {
+        listingQuery() + tagIDs.map { URLQueryItem(name: "includedTags[]", value: $0) } + [
+            URLQueryItem(name: "includedTagsMode", value: "AND"),
+            URLQueryItem(name: "availableTranslatedLanguage[]", value: "en"),
+            URLQueryItem(name: "order[followedCount]", value: "desc")]
+    }
+
+    /// Keeps first occurrences, drops the title being viewed, caps the list.
+    static func dedupe(_ items: [MangaItem], excluding id: String) -> [MangaItem] {
+        var seen: Set<String> = [id]
+        return Array(items.filter { seen.insert($0.id).inserted }.prefix(suggestionLimit))
+    }
+
     func details(for manga: MangaSummary) async throws -> MangaDetails {
         let result: One<MangaItem> = try await get("/manga/\(manga.id)", [
             .init(name: "includes[]", value: "author"), .init(name: "includes[]", value: "cover_art")
@@ -113,11 +164,18 @@ struct MangaDexSource: Source {
 
     struct MangaItem: Decodable {
         struct Attributes: Decodable {
+            struct Tag: Decodable {
+                struct Attributes: Decodable { let group: String? }
+                let id: String
+                let attributes: Attributes?
+            }
             let title: [String: String]
             let description: [String: String]?
+            let tags: [Tag]?
         }
         struct Relationship: Decodable {
             struct Attributes: Decodable { let fileName: String?; let name: String? }
+            let id: String?
             let type: String
             let attributes: Attributes?
         }
