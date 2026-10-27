@@ -9,4 +9,7 @@ enum DistributionPolicy {
     static let allowsPublicSources = true
     static let allowsCustomSources = true
     #endif
+
+    /// Suwayomi servers run third-party extensions, so they follow the custom-source decision.
+    static var allowsSuwayomi: Bool { allowsCustomSources }
 }

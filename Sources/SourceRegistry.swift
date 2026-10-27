@@ -23,6 +23,9 @@ enum SourceRegistry {
            let server = ServerStore.shared.servers.first(where: { $0.id == uuid }) {
             return ServerStore.shared.source(for: server)
         }
+        if let parsed = SuwayomiSource.parseID(id) {
+            return ServerStore.shared.suwayomiSource(serverID: parsed.server, sourceID: parsed.source)
+        }
         if DistributionPolicy.allowsCustomSources, let manifest = SourceStore.shared.manifests.first(where: { $0.id == id }) {
             return SourceStore.shared.source(for: manifest)
         }

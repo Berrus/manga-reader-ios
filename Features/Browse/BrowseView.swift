@@ -4,6 +4,10 @@ import SwiftData
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
     private var servers: ServerStore { .shared }
+    private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind == .komga } }
+    private var suwayomiServers: [ServerConfig] {
+        DistributionPolicy.allowsSuwayomi ? servers.servers.filter { $0.kind == .suwayomi } : []
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,9 +23,9 @@ struct BrowseView: View {
                 }
                 }
 
-                if !servers.servers.isEmpty {
+                if !komgaServers.isEmpty {
                     Section("Your servers") {
-                        ForEach(servers.servers) { server in
+                        ForEach(komgaServers) { server in
                             if let source = servers.source(for: server) {
                                 row(source, subtitle: server.url)
                             } else {
@@ -32,6 +36,24 @@ struct BrowseView: View {
                     }
                 }
 
+                if !suwayomiServers.isEmpty {
+                    Section {
+                        ForEach(suwayomiServers) { server in
+                            NavigationLink {
+                                SuwayomiSourcesView(server: server)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(server.name)
+                                    Text(server.url).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                            }
+                        }
+                    } header: {
+                        Text("Suwayomi servers")
+                    } footer: {
+                        Text("Content comes from the extensions installed on your own server.")
+                    }
+                }
                 if DistributionPolicy.allowsCustomSources && store.enabled && !store.manifests.isEmpty {
                     Section("Custom sources") {
                         ForEach(store.manifests) { manifest in

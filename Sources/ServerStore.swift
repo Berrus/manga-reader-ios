@@ -2,7 +2,11 @@ import Foundation
 import Observation
 
 struct ServerConfig: Codable, Identifiable, Hashable {
-    enum Kind: String, Codable { case komga }
+    enum Kind: String, Codable, Identifiable {
+        case komga, suwayomi
+        var id: String { rawValue }
+        var label: String { self == .komga ? "Komga" : "Suwayomi" }
+    }
 
     var id = UUID()
     var kind: Kind = .komga
@@ -54,8 +58,23 @@ final class ServerStore {
         save()
     }
 
+    /// A single source for the server. Suwayomi servers host many sources, so they have none here;
+    /// use `suwayomiClient(for:)` and `suwayomiSource(...)` instead.
     func source(for server: ServerConfig) -> (any Source)? {
-        guard let source = KomgaSource(config: server, password: password(for: server)) else { return nil }
-        return source
+        switch server.kind {
+        case .komga: return KomgaSource(config: server, password: password(for: server))
+        case .suwayomi: return nil
+        }
+    }
+
+    func suwayomiClient(for server: ServerConfig) -> SuwayomiClient? {
+        guard server.kind == .suwayomi, DistributionPolicy.allowsSuwayomi else { return nil }
+        return SuwayomiClient(config: server, password: password(for: server))
+    }
+
+    func suwayomiSource(serverID: UUID, sourceID: String, name: String = "Suwayomi") -> SuwayomiSource? {
+        guard DistributionPolicy.allowsSuwayomi,
+              let server = servers.first(where: { $0.id == serverID && $0.kind == .suwayomi }) else { return nil }
+        return SuwayomiSource(config: server, password: password(for: server), sourceID: sourceID, name: name)
     }
 }
