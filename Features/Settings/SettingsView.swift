@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var showKomikkuRestoreConfirmation = false
     @State private var message: String?
     @State private var connecting = false
+    @State private var showKitsuSignIn = false
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,7 @@ struct SettingsView: View {
                               allowedContentTypes: [.json, UTType(filenameExtension: "tachibk", conformingTo: .data) ?? .data],
                               onCompletion: restoreBackup)
                 .sheet(isPresented: $showSourceInstaller) { SourceInstallerView() }
+                .sheet(isPresented: $showKitsuSignIn) { KitsuSignInView() }
                 .confirmationDialog("Restore Komikku backup?", isPresented: $showKomikkuRestoreConfirmation,
                                    titleVisibility: .visible) {
                     Button("Restore matched progress") { restoreKomikkuBackup() }
@@ -92,8 +94,13 @@ struct SettingsView: View {
                 Button(connecting ? "Connecting…" : "Connect MyAnimeList", action: connectMyAnimeList)
                     .disabled(connecting)
             }
+            if KitsuAuth.shared.isConnected {
+                Button("Sign out of Kitsu", role: .destructive) { KitsuAuth.shared.signOut() }
+            } else {
+                Button("Sign in to Kitsu") { showKitsuSignIn = true }
+            }
         } header: { Text("Tracking") }
-        footer: { Text("Reading progress is sent to AniList or MyAnimeList after you finish a chapter. Progress only moves forward.") }
+        footer: { Text("Reading progress is sent to AniList, MyAnimeList or Kitsu after you finish a chapter. Progress only moves forward. Kitsu signs in with your account email and password, which are sent only to Kitsu and never stored.") }
     }
     private var customSourceSection: some View {
         Section {

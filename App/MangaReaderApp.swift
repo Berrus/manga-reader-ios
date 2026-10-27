@@ -61,6 +61,7 @@ struct MangaReaderApp: App {
                 DownloadManager.shared.resume(context: container.mainContext)
                 AniListAuth.shared.restore()
                 MyAnimeListAuth.shared.restore()
+                KitsuAuth.shared.restore()
                 await TrackerSync.shared.syncAll(context: container.mainContext)
                 await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
             }

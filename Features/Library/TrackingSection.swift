@@ -10,6 +10,7 @@ struct TrackerService: Identifiable {
         var list: [TrackerService] = []
         if AniListAuth.shared.isConnected { list.append(TrackerService(id: "anilist", name: "AniList")) }
         if MyAnimeListAuth.shared.isConnected { list.append(TrackerService(id: "myanimelist", name: "MyAnimeList")) }
+        if KitsuAuth.shared.isConnected { list.append(TrackerService(id: "kitsu", name: "Kitsu")) }
         return list
     }
 }
