@@ -125,6 +125,7 @@ struct SettingsView: View {
                 .accessibilityIdentifier("sourceRepositories")
             #if !APP_STORE
             NavigationLink("Scripted sources") { ScriptedSourcesView() }
+            NavigationLink("Paperback extensions") { PaperbackView() }
             #endif
         }
     }

@@ -73,3 +73,21 @@ Authorization, 10 MB, 30 calls per run) and `log(text)`. There is no DOM: parse 
 regular-expression functions. Limits: 20 s per call, 1000 items per result. JavaScriptCore cannot be interrupted, so a
 script that never returns keeps its thread until the app quits; after three such runs scripted sources stop running.
 Image URLs must be on declared hosts. Paperback and Aidoku packages are not compatible.
+
+
+## Paperback 0.9 repositories — non-App-Store builds only
+
+Settings → Installed sources → Paperback extensions. Off by default. Turn it on, paste a repository base address
+(for example the one Paperback itself uses: `https://…/0.9/stable`), open it to see its extensions and tap Install.
+Nothing is pre-filled. Extensions appear in Browse like other sources and use ids starting with `pb.`.
+
+Folio reads the repository's `versioning.json` and downloads `<id>/index.js` for each extension you install. Extensions
+rated ADULT in the repository are not listed. A small compatibility layer (Sources/PaperbackShim.swift) provides the part
+of Paperback's `Application` API that library extensions use: HTTPS requests with their request/response interceptors,
+HTML entity decoding, per-extension state and timers. Search, details, chapters and pages are supported.
+
+Not supported: extension settings forms, login and secure storage (kept in memory only), discover sections, tag filters and
+search filters, and Paperback's own tracker or notification features. An extension that needs those may load but behave
+partly. Extensions declare no domains, so they may contact any public HTTPS site (never local or private addresses, never
+with stored cookies or credentials). Repository scripts carry no checksum, so you are trusting the repository host.
+Paperback extensions were run against this layer in a Node test harness with mocked network responses; they have not been run on a device.

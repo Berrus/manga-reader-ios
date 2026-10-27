@@ -4,8 +4,14 @@ struct SourceAccessPolicy: Sendable, Equatable {
     var hosts: [String]
     var allowsLocalHTTP = false
     var port: Int? = nil
+    /// For sources that declare no domains (Paperback extensions): any public HTTPS address, never local ones.
+    var anyPublicHTTPS = false
 
     func allows(_ url: URL) -> Bool {
+        if anyPublicHTTPS {
+            guard url.scheme == "https", url.user == nil, url.password == nil, let host = url.host else { return false }
+            return !Self.isLocal(host)
+        }
         guard url.user == nil, url.password == nil, let host = url.host?.lowercased(),
               hosts.contains(where: { host == $0.lowercased() || (port == nil && host.hasSuffix("." + $0.lowercased())) })
         else { return false }
