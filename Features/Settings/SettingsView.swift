@@ -106,6 +106,7 @@ struct SettingsView: View {
             }
             Button("Add source…", systemImage: "plus") { showSourceInstaller = true }
             NavigationLink("Source repositories") { SourceRepositoriesView() }
+                .accessibilityIdentifier("sourceRepositories")
         }
     }
     private func exportBackup() {
@@ -159,7 +160,6 @@ private struct SourceInstallerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var address = ""
     @State private var pending: JSSourceManifest?
-    @State private var pendingOrigin: String?
     @State private var busy = false
     @State private var error: String?
 
@@ -171,15 +171,13 @@ private struct SourceInstallerView: View {
                 Button(busy ? "Loading…" : "Review source", action: fetch).disabled(busy)
                 if let pending {
                     Section("Install \(pending.name)?") {
-                        let warning = store.replacementWarning(for: pending, origin: pendingOrigin)
                         Text("Allowed domains: " + pending.hosts.joined(separator: ", "))
-                        if let warning { Text(warning).foregroundStyle(.orange) }
-                        Button(warning == nil ? "Install" : "Replace source",
-                               role: warning == nil ? nil : .destructive) {
-                            do {
-                                try store.add(pending, origin: pendingOrigin, allowReplacement: warning != nil)
-                                dismiss()
-                            } catch { self.error = error.localizedDescription }
+                        if let warning = store.replacementWarning(for: pending, origin: nil) {
+                            Text(warning).foregroundStyle(.orange)
+                        }
+                        Button(store.replacementWarning(for: pending, origin: nil) == nil ? "Install" : "Replace source") {
+                            do { try store.add(pending, confirmedReplacement: true); dismiss() }
+                            catch { self.error = error.localizedDescription }
                         }
                     }
                 }
@@ -193,13 +191,10 @@ private struct SourceInstallerView: View {
         guard let url = URL(string: address.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             error = "Enter a valid HTTPS address."; return
         }
-        busy = true; error = nil; pending = nil; pendingOrigin = nil
+        busy = true; error = nil; pending = nil
         Task {
             defer { busy = false }
-            do {
-                pending = try await store.fetchManifest(from: url)
-                pendingOrigin = url.absoluteString
-            }
+            do { pending = try await store.fetchManifest(from: url) }
             catch { self.error = error.localizedDescription }
         }
     }

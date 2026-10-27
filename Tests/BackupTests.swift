@@ -88,6 +88,7 @@ final class BackupTests: XCTestCase {
 
         let target = try context()
         let local = series("Sample series", in: target, read: false, lastPage: 0)
+        local.chapters[0].name = "Chapter 1"
         let summary = try BackupService.restore(preview.backup, into: target)
         XCTAssertEqual(summary.series, 1)
         XCTAssertEqual(summary.chapters, 1)

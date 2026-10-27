@@ -141,9 +141,9 @@ final class MangaReaderUITests: XCTestCase {
         for _ in 0..<4 where !custom.exists { app.swipeUp() }
         XCTAssertTrue(custom.exists)
         if (custom.value as? String) == "0" { custom.tap() }
-        let repositories = app.buttons["Source repositories"]
+        let repositories = app.descendants(matching: .any).matching(identifier: "sourceRepositories").firstMatch
         for _ in 0..<4 where !repositories.exists { app.swipeUp() }
-        XCTAssertTrue(repositories.exists)
+        XCTAssertTrue(repositories.waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["Servers"].firstMatch.exists)
         screenshot("08-app-store-personal-library")
         #else
