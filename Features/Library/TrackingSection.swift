@@ -33,8 +33,9 @@ struct TrackerLinkSection: View {
     @State private var isSyncing = false
     @State private var message: String?
 
-    init(manga: Manga) {
+    init(manga: Manga, service: TrackerService) {
         self.manga = manga
+        self.service = service
         let id = manga.id
         _links = Query(filter: #Predicate<TrackLink> { $0.mangaID == id })
     }
