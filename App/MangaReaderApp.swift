@@ -60,6 +60,7 @@ struct MangaReaderApp: App {
             .task {
                 DownloadManager.shared.resume(context: container.mainContext)
                 AniListAuth.shared.restore()
+                MyAnimeListAuth.shared.restore()
                 await TrackerSync.shared.syncAll(context: container.mainContext)
                 await LibraryUpdater.shared.runIfNeeded(context: container.mainContext)
             }

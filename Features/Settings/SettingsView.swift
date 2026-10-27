@@ -84,8 +84,16 @@ struct SettingsView: View {
                 Button(connecting ? "Connecting…" : "Connect AniList", action: connectAniList)
                     .disabled(connecting)
             }
+            if !MyAnimeListAuth.shared.hasClientID {
+                Text("Configure your MyAnimeList client ID to enable MyAnimeList tracking.").font(.footnote)
+            } else if MyAnimeListAuth.shared.isConnected {
+                Button("Disconnect MyAnimeList", role: .destructive) { MyAnimeListAuth.shared.disconnect() }
+            } else {
+                Button(connecting ? "Connecting…" : "Connect MyAnimeList", action: connectMyAnimeList)
+                    .disabled(connecting)
+            }
         } header: { Text("Tracking") }
-        footer: { Text("Reading progress is sent to AniList after you finish a chapter.") }
+        footer: { Text("Reading progress is sent to AniList or MyAnimeList after you finish a chapter. Progress only moves forward.") }
     }
     private var customSourceSection: some View {
         Section {
@@ -144,6 +152,16 @@ struct SettingsView: View {
         }
         pendingKomikkuBackup = nil
     }
+    private func connectMyAnimeList() {
+        connecting = true
+        Task {
+            defer { connecting = false }
+            do { try await MyAnimeListAuth.shared.connect() }
+            catch let error as ASWebAuthenticationSessionError where error.code == .canceledLogin {}
+            catch { message = error.localizedDescription }
+        }
+    }
+
     private func connectAniList() {
         connecting = true
         Task {

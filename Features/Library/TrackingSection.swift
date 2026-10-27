@@ -1,9 +1,31 @@
 import SwiftUI
 import SwiftData
 
-/// "Tracking" rows on the series page. Only shown when AniList is connected.
+/// A tracking service the user has connected.
+struct TrackerService: Identifiable {
+    let id: String
+    let name: String
+
+    @MainActor static var connected: [TrackerService] {
+        var list: [TrackerService] = []
+        if AniListAuth.shared.isConnected { list.append(TrackerService(id: "anilist", name: "AniList")) }
+        if MyAnimeListAuth.shared.isConnected { list.append(TrackerService(id: "myanimelist", name: "MyAnimeList")) }
+        return list
+    }
+}
+
+/// "Tracking" rows on the series page: one section for each connected service.
 struct TrackingSection: View {
     let manga: Manga
+
+    var body: some View {
+        ForEach(TrackerService.connected) { TrackerLinkSection(manga: manga, service: $0) }
+    }
+}
+
+struct TrackerLinkSection: View {
+    let manga: Manga
+    let service: TrackerService
     @Environment(\.modelContext) private var context
     @Query private var links: [TrackLink]
     @State private var showSearch = false
@@ -16,10 +38,10 @@ struct TrackingSection: View {
         _links = Query(filter: #Predicate<TrackLink> { $0.mangaID == id })
     }
 
-    private var link: TrackLink? { links.first { $0.trackerID == "anilist" } }
+    private var link: TrackLink? { links.first { $0.trackerID == service.id } }
 
     var body: some View {
-        Section("Tracking") {
+        Section("Tracking · \(service.name)") {
             if let link {
                 VStack(alignment: .leading, spacing: 4) {
                     Label(link.remoteTitle, systemImage: "link")
@@ -35,12 +57,12 @@ struct TrackingSection: View {
                     context.delete(link)
                 }
             } else {
-                Button("Link to AniList", systemImage: "link.badge.plus") { showSearch = true }
+                Button("Link to \(service.name)", systemImage: "link.badge.plus") { showSearch = true }
             }
         }
         .sheet(isPresented: $showSearch) {
-            TrackSearchView(manga: manga) { result in
-                let new = TrackLink(mangaID: manga.id, trackerID: "anilist",
+            TrackSearchView(manga: manga, service: service) { result in
+                let new = TrackLink(mangaID: manga.id, trackerID: service.id,
                                     remoteId: result.remoteId, remoteTitle: result.title)
                 context.insert(new)
                 sync(new)
@@ -50,7 +72,7 @@ struct TrackingSection: View {
 
     private func sync(_ link: TrackLink) {
         guard let tracker = TrackerSync.shared.trackers[link.trackerID] else {
-            message = "Not connected to AniList."
+            message = "Not connected to \(service.name)."
             return
         }
         isSyncing = true
@@ -61,7 +83,7 @@ struct TrackingSection: View {
                 switch try await TrackerSync.shared.reconcile(manga: manga, link: link, tracker: tracker) {
                 case .unchanged: message = "Already up to date."
                 case .pulled(let n): message = "Marked chapters up to \(Int(n)) as read."
-                case .pushed(let n): message = "Sent chapter \(Int(n)) to AniList."
+                case .pushed(let n): message = "Sent chapter \(Int(n)) to \(service.name)."
                 }
             } catch {
                 message = error.localizedDescription
@@ -72,6 +94,7 @@ struct TrackingSection: View {
 
 struct TrackSearchView: View {
     let manga: Manga
+    let service: TrackerService
     let onPick: (TrackSearchResult) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var query: String
@@ -79,8 +102,9 @@ struct TrackSearchView: View {
     @State private var isLoading = false
     @State private var error: String?
 
-    init(manga: Manga, onPick: @escaping (TrackSearchResult) -> Void) {
+    init(manga: Manga, service: TrackerService, onPick: @escaping (TrackSearchResult) -> Void) {
         self.manga = manga
+        self.service = service
         self.onPick = onPick
         _query = State(initialValue: manga.title)
     }
@@ -113,7 +137,7 @@ struct TrackSearchView: View {
                 else if let error { ContentUnavailableView("Search failed", systemImage: "exclamationmark.triangle", description: Text(error)) }
                 else if results.isEmpty { ContentUnavailableView.search }
             }
-            .navigationTitle("Link to AniList")
+            .navigationTitle("Link to \(service.name)")
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query)
             .onSubmit(of: .search) { Task { await search() } }
@@ -123,8 +147,8 @@ struct TrackSearchView: View {
     }
 
     private func search() async {
-        guard let tracker = TrackerSync.shared.trackers["anilist"] else {
-            error = "Not connected to AniList."
+        guard let tracker = TrackerSync.shared.trackers[service.id] else {
+            error = "Not connected to \(service.name)."
             return
         }
         isLoading = true
