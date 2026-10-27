@@ -107,6 +107,7 @@ struct SettingsView: View {
                 }
             }
             Button("Add source…", systemImage: "plus") { showSourceInstaller = true }
+            NavigationLink("Source repositories") { SourceRepositoriesView() }
         }
     }
     private func exportBackup() {
