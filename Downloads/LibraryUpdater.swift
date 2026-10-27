@@ -48,6 +48,8 @@ final class LibraryUpdater {
         let all = (try? context.fetch(FetchDescriptor<Manga>(predicate: #Predicate { $0.sourceID != nil }))) ?? []
         totalCount = all.count
         var toDownload: [Chapter] = []
+        var noticeTitle: String?
+        var noticeCover: Data?
 
         for manga in all {
             if Task.isCancelled { break }
@@ -57,6 +59,7 @@ final class LibraryUpdater {
             do {
                 let new = try await refresh(manga)
                 summary.newChapters += new.count
+                if !new.isEmpty && noticeTitle == nil { noticeTitle = manga.title; noticeCover = manga.coverData }
                 toDownload += AutoDownloadPolicy.candidates(for: manga, scope: DownloadSettings.scope,
                                                             ahead: DownloadSettings.ahead, newChapters: new)
             } catch is CancellationError {
@@ -81,6 +84,7 @@ final class LibraryUpdater {
         DownloadManager.shared.enqueue(toDownload)
         if summary.failed == 0 { UserDefaults.standard.set(Date(), forKey: DownloadSettings.lastCheckKey) }
         lastSummary = summary
+        await UpdateNotifications.shared.post(count: summary.newChapters, title: noticeTitle, cover: noticeCover)
         return summary
     }
 
