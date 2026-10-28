@@ -150,11 +150,11 @@ final class StorageRegressionTests: XCTestCase {
     func testRemoteIdentitySurvivesTitleAndLocalIDChanges() throws {
         let source = try context()
         let old = book("Old title", page: 6, context: source)
-        old.sourceID = "mangadex"; old.remoteID = "remote-book"
+        old.sourceID = "example-source"; old.remoteID = "remote-book"
         let backup = try BackupService.snapshot(context: source)
         let target = try context()
         let new = book("New title", page: 0, context: target)
-        new.sourceID = "mangadex"; new.remoteID = "remote-book"
+        new.sourceID = "example-source"; new.remoteID = "remote-book"
         _ = try BackupService.restore(backup, into: target)
         XCTAssertEqual(new.chapters[0].lastPage, 6)
     }
