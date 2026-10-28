@@ -271,7 +271,11 @@ private final class Run: @unchecked Sendable {
                                                   "headers": headers, "body": data.base64EncodedString()]
                     let text = String(decoding: try JSONSerialization.data(withJSONObject: payload), as: UTF8.self)
                     callbacks.ok.call(withArguments: [text])
-                } catch { callbacks.fail.call(withArguments: [error.localizedDescription]) }
+                } catch {
+                    // Naming the address makes a bare "HTTP 404" traceable to the extension's request.
+                    let where_ = (url.host ?? "") + url.path
+                    callbacks.fail.call(withArguments: ["\(error.localizedDescription) (\(where_))"])
+                }
             }
         }
         let sleep: @convention(block) (Double, JSValue) -> Void = { ms, done in

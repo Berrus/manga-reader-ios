@@ -12,6 +12,10 @@ struct ReaderErrorView: View {
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.white)
                 .fixedSize(horizontal: false, vertical: true)
+            if Self.friendly(message) != message {
+                Text(message).font(.caption2).foregroundStyle(.gray)
+                    .multilineTextAlignment(.center).textSelection(.enabled)
+            }
             if let retry { Button("Try again", action: retry).buttonStyle(.borderedProminent) }
         }
         .padding(24)
