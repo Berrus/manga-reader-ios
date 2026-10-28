@@ -223,10 +223,11 @@ struct SourceSearchView: View {
         do {
             let response = try await source.search(query: text, page: page)
             guard revision == searchRevision else { return }
-            let existing = Set(results.map(\.id))
-            results.append(contentsOf: response.filter { !existing.contains($0.id) })
+            var existing = Set(results.map(\.id))
+            let newItems = response.filter { existing.insert($0.id).inserted }
+            results.append(contentsOf: newItems)
             nextPage = page + 1
-            canLoadMore = !response.isEmpty
+            canLoadMore = !newItems.isEmpty
         } catch {
             guard revision == searchRevision else { return }
             moreError = error.localizedDescription
