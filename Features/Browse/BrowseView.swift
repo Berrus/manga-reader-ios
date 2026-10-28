@@ -99,6 +99,10 @@ struct SourceSearchView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var searched = false
+    @State private var nextPage = 2
+    @State private var canLoadMore = false
+    @State private var loadingMore = false
+    @State private var moreError: String?
 
     var body: some View {
         List {
@@ -118,6 +122,12 @@ struct SourceSearchView: View {
                             Text(manga.title).lineLimit(2)
                         }
                     }
+                }
+                if !isLoading && !results.isEmpty && canLoadMore {
+                    Button(loadingMore ? "Loading…" : "Load more") {
+                        Task { await loadMore() }
+                    }.disabled(loadingMore)
+                    if let moreError { Text(moreError).foregroundStyle(.red) }
                 }
                 if isLoading {
                     HStack { Spacer(); ProgressView(); Spacer() }
@@ -183,6 +193,9 @@ struct SourceSearchView: View {
         isLoading = true
         error = nil
         results = []
+        nextPage = 2
+        canLoadMore = false
+        moreError = nil
         defer {
             if revision == searchRevision { isLoading = false; searched = true }
         }
@@ -191,12 +204,35 @@ struct SourceSearchView: View {
             try Task.checkCancellation()
             guard revision == searchRevision else { return }
             results = response
+            canLoadMore = !response.isEmpty
         } catch is CancellationError { return }
         catch {
             guard !Task.isCancelled, revision == searchRevision else { return }
             self.error = error.localizedDescription
         }
     }
+
+    private func loadMore() async {
+        guard !loadingMore, canLoadMore else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        let revision = searchRevision
+        let page = nextPage
+        let text = submittedQuery
+        moreError = nil
+        do {
+            let response = try await source.search(query: text, page: page)
+            guard revision == searchRevision else { return }
+            let existing = Set(results.map(\.id))
+            results.append(contentsOf: response.filter { !existing.contains($0.id) })
+            nextPage = page + 1
+            canLoadMore = !response.isEmpty
+        } catch {
+            guard revision == searchRevision else { return }
+            moreError = error.localizedDescription
+        }
+    }
+
 }
 
 struct SourceMangaView: View {
