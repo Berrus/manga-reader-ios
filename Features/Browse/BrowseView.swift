@@ -105,32 +105,54 @@ struct SourceSearchView: View {
     @State private var moreError: String?
 
     var body: some View {
-        List {
-            if !savedSearches.searches(for: source.id).isEmpty {
-                Section("Saved searches") { savedSearchChips }
-            }
-            Section {
-                ForEach(results) { manga in
-                    NavigationLink {
-                        SourceMangaView(source: source, manga: manga)
-                    } label: {
-                        HStack(spacing: 12) {
-                            RemoteImage(url: manga.coverURL.flatMap(URL.init(string:)),
-                                        headers: source.imageHeaders, policy: source.accessPolicy)
-                                .frame(width: 44, height: 64)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                            Text(manga.title).lineLimit(2)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if !savedSearches.searches(for: source.id).isEmpty {
+                    savedSearchChips
+                }
+                if !results.isEmpty {
+                    HStack {
+                        Text("Results")
+                        Spacer()
+                        Text("\(results.count) loaded")
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 16) {
+                        ForEach(results) { manga in
+                            NavigationLink {
+                                SourceMangaView(source: source, manga: manga)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    RemoteImage(url: manga.coverURL.flatMap(URL.init(string:)),
+                                                headers: source.imageHeaders, policy: source.accessPolicy)
+                                        .aspectRatio(2.0 / 3.0, contentMode: .fill)
+                                        .frame(maxWidth: .infinity)
+                                        .clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    Text(manga.title)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(2)
+                                        .frame(maxWidth: .infinity, minHeight: 38, alignment: .topLeading)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(manga.title)
                         }
                     }
                 }
                 if !isLoading && !results.isEmpty && canLoadMore {
                     Button(loadingMore ? "Loading…" : "Load more") {
                         Task { await loadMore() }
-                    }.disabled(loadingMore)
+                    }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+                    .disabled(loadingMore)
                     if let moreError { Text(moreError).foregroundStyle(.red) }
                 }
                 if isLoading {
-                    HStack { Spacer(); ProgressView(); Spacer() }
+                    ProgressView().frame(maxWidth: .infinity)
                 } else if let error {
                     ContentUnavailableView("Couldn't load", systemImage: "exclamationmark.triangle",
                                            description: Text(error))
@@ -139,6 +161,7 @@ struct SourceSearchView: View {
                     ContentUnavailableView.search
                 }
             }
+            .padding()
         }
         .navigationTitle(source.name)
         .navigationBarTitleDisplayMode(.inline)
