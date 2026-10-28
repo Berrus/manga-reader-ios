@@ -129,29 +129,21 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No updates yet"].waitForExistence(timeout: 10))
     }
 
-    func testAppStoreSourceBoundaries() throws {
-        #if APP_STORE
+    func testAppStoreSourceBoundaries() {
         let app = launch(empty: true)
-        app.buttons["Browse"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["Import your comics in Library, or add a personal Komga server in Settings."].waitForExistence(timeout: 10))
-        XCTAssertFalse(app.staticTexts["Online"].exists)
-        XCTAssertFalse(app.staticTexts["MangaDex"].exists)
         app.buttons["Settings"].firstMatch.tap()
-        // Check the Servers row before scrolling: it is at the top of Settings and leaves the screen afterwards.
-        XCTAssertTrue(app.buttons["Servers"].firstMatch.waitForExistence(timeout: 10))
         let custom = app.switches["Enable custom sources"]
         for _ in 0..<4 where !custom.exists { app.swipeUp() }
-        XCTAssertTrue(custom.exists)
-        // A plain tap hits the row's label in a Form, not the switch, so tap the switch at the right edge.
-        if (custom.value as? String) == "0" { custom.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
-        XCTAssertEqual(custom.value as? String, "1", "Enable custom sources did not turn on")
-        let repositories = app.descendants(matching: .any).matching(identifier: "sourceRepositories").firstMatch
-        for _ in 0..<4 where !repositories.exists { app.swipeUp() }
-        XCTAssertTrue(repositories.waitForExistence(timeout: 10))
-        screenshot("08-app-store-personal-library")
-        #else
-        throw XCTSkip("Only the AppStore configuration excludes built-in public providers.")
-        #endif
+        XCTAssertTrue(custom.waitForExistence(timeout: 10))
+        if (custom.value as? String) == "0" {
+            custom.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        }
+        XCTAssertEqual(custom.value as? String, "1")
+        let paperback = app.buttons["Paperback extensions"].firstMatch
+        for _ in 0..<4 where !paperback.exists { app.swipeUp() }
+        XCTAssertTrue(paperback.waitForExistence(timeout: 10))
+        paperback.tap()
+        XCTAssertTrue(app.switches["Enable Paperback extensions"].waitForExistence(timeout: 10))
     }
 
 }

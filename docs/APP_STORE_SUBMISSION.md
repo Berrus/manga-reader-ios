@@ -4,14 +4,12 @@ This file is a release checklist and draft review note, not evidence of Apple ap
 
 ## App Store configuration
 
-Select the generated FolioReader-AppStore scheme to build/archive the AppStore configuration. This compile-time variant exposes local-file imports, personal Komga servers, and opt-in installation of declarative JSON sources and repositories. Built-in public MangaDex browsing remains unavailable. Existing entries from unavailable providers show a source-unavailable message. The standard MangaReader Debug/Release configurations retain their current features for development and other distribution; do not submit that variant without a separate rights and terms review.
-
-The differences are documented openly; there is no remote switch to turn excluded providers back on. App Store review notes should describe the submitted variant accurately. Source code for the broader development configuration is not a promise that every feature is in the submitted app.
+The FolioReader-AppStore scheme now uses the same source features as the standard build, including public sources and opt-in downloaded JavaScript extensions. Review the final build's behavior, applicable service permissions, and Apple requirements before submission. This configuration has not been validated for App Store acceptance.
 
 ## Architecture and code
 
 - Native Swift / SwiftUI. Public UIKit APIs for reader zoom/scrolling.
-- No downloaded executable providers, Android APKs, or self-updater.
+- Opt-in scripted and Paperback providers download and execute third-party JavaScript. Android APKs are not run locally.
 - Source JSON is declarative configuration. Explain its complete behavior to review; permission to access every service is still required.
 - PrivacyInfo.xcprivacy declares own-app UserDefaults (CA92.1) and file metadata in the app container / user-selected documents (C617.1 / 3B52.1). Generate Xcode's privacy report and audit the final archive plus ZIPFoundation before submission. These entries do not replace App Store privacy disclosures.
 - Tracking in the privacy manifest means advertising/cross-app tracking, not AniList reading-progress synchronization. No advertising SDK is included.
@@ -28,9 +26,9 @@ The differences are documented openly; there is no remote switch to turn exclude
 
 ## Draft review notes
 
-Folio Reader imports user-selected CBZ files from Files and connects to media servers configured by the user. It includes local/downloaded paged and webtoon reading, categories, source-specific saved searches, an opt-in saved-search feed, reading history, offline queue controls, and optional AniList progress synchronization. The submitted AppStore variant supports personal Komga servers and opt-in declarative JSON source installation; built-in MangaDex browsing is excluded at compile time.
+Folio Reader imports user-selected CBZ files from Files and connects to media servers configured by the user. It includes local/downloaded paged and webtoon reading, categories, source-specific saved searches, an opt-in saved-search feed, reading history, offline queue controls, and optional AniList progress synchronization. The submitted build includes public sources, opt-in declarative sources, and opt-in downloaded JavaScript extensions.
 
-Provide a licensed demo library and credentials for any service reviewers need. List all enabled public/custom source behavior and its authorization. Explain that source definitions contain endpoint/field data only; they do not download or run code. Do not conceal source controls or enable different functionality after review.
+Provide a licensed demo library and credentials for any service reviewers need. List all enabled public/custom source behavior and its authorization. Explain both declarative sources and the downloaded JavaScript extension capability. Do not conceal source controls or enable different functionality after review.
 
 Background refresh is best effort under iOS scheduling. Webtoon autoscroll stops when the reader loses foreground activity or the user scrolls, and is disabled with VoiceOver or Reduce Motion.
 
