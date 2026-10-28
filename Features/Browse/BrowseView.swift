@@ -118,7 +118,7 @@ struct SourceSearchView: View {
                     }
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 105, maximum: 155), spacing: 12)], alignment: .leading, spacing: 16) {
                         ForEach(results) { manga in
                             NavigationLink {
                                 SourceMangaView(source: source, manga: manga)
