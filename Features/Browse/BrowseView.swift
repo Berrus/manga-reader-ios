@@ -378,7 +378,7 @@ struct SourceMangaView: View {
             Section {
                 ForEach(ordered) { chapter in
                     NavigationLink {
-                        RemoteReaderView(source: source, chapter: chapter)
+                        RemoteReaderView(source: source, chapter: chapter) { recordRead(chapter) }
                     } label: {
                         HStack(spacing: 12) {
                             if let number = chapter.number {
@@ -408,10 +408,19 @@ struct SourceMangaView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(manga.title)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $startChapter) { RemoteReaderView(source: source, chapter: $0) }
+        .navigationDestination(item: $startChapter) { item in
+            RemoteReaderView(source: source, chapter: item) { recordRead(item) }
+        }
         .overlay { if isLoading { ProgressView() } }
         .task { await load() }
         .task { similar = (try? await source.related(to: manga)) ?? [] }
+    }
+
+    /// Reading a series that is in the library puts it in History.
+    private func recordRead(_ chapter: ChapterSummary) {
+        guard let entry = existing.first else { return }
+        entry.lastReadAt = .now
+        entry.lastReadChapterName = chapter.name
     }
 
     private static func format(_ number: Double) -> String {
@@ -525,6 +534,8 @@ struct SourceMangaView: View {
 struct RemoteReaderView: View {
     let source: any Source
     let chapter: ChapterSummary
+    /// Called once the chapter's pages have loaded, so the caller can record it in History.
+    var onOpen: (() -> Void)? = nil
     @State private var pages: [PageSource] = []
     @State private var isLoading = true
     @State private var error: String?
@@ -562,8 +573,10 @@ struct RemoteReaderView: View {
         isLoading = true
         error = nil
         defer { isLoading = false }
-        do { pages = try await source.pages(for: chapter) }
-        catch { self.error = error.localizedDescription }
+        do {
+            pages = try await source.pages(for: chapter)
+            onOpen?()
+        } catch { self.error = error.localizedDescription }
     }
 }
 

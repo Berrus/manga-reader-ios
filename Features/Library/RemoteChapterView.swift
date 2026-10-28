@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Streams a chapter of a remote series that hasn't been downloaded. Reading progress is only
-/// tracked for downloaded chapters.
+/// Streams a chapter of a remote series that hasn't been downloaded. Opening it is recorded in History;
+/// page progress is only tracked for downloaded chapters.
 struct RemoteChapterView: View {
     let chapter: Chapter
 
@@ -9,7 +9,10 @@ struct RemoteChapterView: View {
         if let sourceID = chapter.manga?.sourceID, let remoteID = chapter.remoteID,
            let source = SourceRegistry.source(id: sourceID) {
             RemoteReaderView(source: source,
-                             chapter: ChapterSummary(id: remoteID, name: chapter.name, number: chapter.number))
+                             chapter: ChapterSummary(id: remoteID, name: chapter.name, number: chapter.number)) {
+                chapter.manga?.lastReadAt = .now
+                chapter.manga?.lastReadChapterName = chapter.name
+            }
         } else {
             ContentUnavailableView("Source unavailable", systemImage: "network.slash",
                 description: Text("Check your servers and sources in Settings, or download the chapter while online."))
