@@ -6,10 +6,12 @@ struct BrowseView: View {
     #if !APP_STORE
     @State private var paperbackStore = PaperbackStore.shared
     #endif
+    @State private var sourceQuery = ""
+    private func matches(_ name: String) -> Bool { sourceQuery.isEmpty || name.localizedCaseInsensitiveContains(sourceQuery) }
     private var servers: ServerStore { .shared }
-    private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind != .suwayomi } }
+    private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind != .suwayomi && matches($0.name) } }
     private var suwayomiServers: [ServerConfig] {
-        DistributionPolicy.allowsSuwayomi ? servers.servers.filter { $0.kind == .suwayomi } : []
+        DistributionPolicy.allowsSuwayomi ? servers.servers.filter { $0.kind == .suwayomi && matches($0.name) } : []
     }
 
     var body: some View {
@@ -49,7 +51,7 @@ struct BrowseView: View {
                 #if !APP_STORE
                 if DistributionPolicy.allowsScriptedSources && paperbackStore.enabled && paperbackStore.installed.contains(where: { paperbackStore.isEnabled($0) }) {
                     Section("Paperback extensions") {
-                        ForEach(paperbackStore.installed.filter { paperbackStore.isEnabled($0) }) { info in
+                        ForEach(paperbackStore.installed.filter { paperbackStore.isEnabled($0) && matches($0.name) }) { info in
                             if let source = paperbackStore.source(for: info) {
                                 row(source, subtitle: "v\(info.version)")
                             } else {
@@ -62,7 +64,7 @@ struct BrowseView: View {
                 #endif
                 if DistributionPolicy.allowsCustomSources && store.enabled && !store.manifests.isEmpty {
                     Section("Custom sources") {
-                        ForEach(store.manifests) { manifest in
+                        ForEach(store.manifests.filter { matches($0.name) }) { manifest in
                             if let source = store.source(for: manifest) {
                                 row(source, subtitle: "v\(manifest.version)")
                             } else {
@@ -74,6 +76,7 @@ struct BrowseView: View {
                 }
             }
             .navigationTitle("Browse")
+            .searchable(text: $sourceQuery, prompt: "Search sources")
         }
     }
 
@@ -318,6 +321,7 @@ struct SourceMangaView: View {
         let remoteID = manga.id
         _existing = Query(filter: #Predicate<Manga> { $0.sourceID == sourceID && $0.remoteID == remoteID })
     }
+    @State private var showFullSummary = false
     @State private var details: MangaDetails?
     @State private var similar: [MangaSummary] = []
     @State private var chapters: [ChapterSummary] = []
@@ -327,10 +331,18 @@ struct SourceMangaView: View {
     var body: some View {
         List {
             Section {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(details?.title ?? manga.title).font(.headline)
-                    if let author = details?.author { Text(author).font(.subheadline).foregroundStyle(.secondary) }
-                    if let summary = details?.summary { Text(summary).font(.caption) }
+                HStack(alignment: .top, spacing: 14) {
+                    RemoteImage(url: (details?.coverURL ?? manga.coverURL).flatMap(URL.init(string:)), headers: source.imageHeaders, policy: source.accessPolicy)
+                        .frame(width: 90, height: 135).clipped().clipShape(RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(details?.title ?? manga.title).font(.headline)
+                        Text(source.name).font(.subheadline).foregroundStyle(.secondary)
+                        if let author = details?.author { Text(author).font(.subheadline).foregroundStyle(.secondary) }
+                    }
+                }
+                if let summary = details?.summary, !summary.isEmpty {
+                    Text(summary).font(.subheadline).lineLimit(showFullSummary ? nil : 4)
+                    Button(showFullSummary ? "Show less" : "Read more") { showFullSummary.toggle() }
                 }
             }
             if let error {
