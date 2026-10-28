@@ -40,6 +40,7 @@ final class PaperbackSource: Source, @unchecked Sendable {
     static let maxScriptBytes = 3_000_000
     static let maxResponseBytes = 15_000_000
     static let maxItems = 1_000
+    static let maxChapters = 20_000
     static let separator = "\u{1F}"
 
     let info: PaperbackExtensionInfo
@@ -99,7 +100,7 @@ final class PaperbackSource: Source, @unchecked Sendable {
 
     func chapters(for manga: MangaSummary) async throws -> [ChapterSummary] {
         let rows: [PaperbackChapter] = try await call("chapters", ["mangaId": manga.id, "title": manga.title])
-        return rows.prefix(Self.maxItems).compactMap { row in
+        return rows.prefix(Self.maxChapters).compactMap { row in
             guard let chapterID = row.chapterId, !chapterID.isEmpty else { return nil }
             let number = row.chapNum
             let title = row.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

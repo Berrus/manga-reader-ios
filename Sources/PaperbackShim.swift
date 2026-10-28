@@ -153,7 +153,9 @@ enum PaperbackShim {
     } else if (method === "details") {
       result = await instance.getMangaDetails(args.mangaId);
     } else if (method === "chapters") {
-      result = await instance.getChapters({ mangaId: args.mangaId, mangaInfo: { primaryTitle: args.title || "", secondaryTitles: [] } }, undefined);
+      var chapters = await instance.getChapters({ mangaId: args.mangaId, mangaInfo: { primaryTitle: args.title || "", secondaryTitles: [] } }, undefined);
+      // Extensions attach the whole series to every chapter; drop it so long series stay small.
+      result = chapters.map(function (c) { return { chapterId: c.chapterId, title: c.title, chapNum: c.chapNum }; });
     } else if (method === "pages") {
       var details = await instance.getChapterDetails({ chapterId: args.chapterId, sourceManga: { mangaId: args.mangaId, mangaInfo: { primaryTitle: "", secondaryTitles: [] } }, langCode: "en", chapNum: 0, volume: 0 });
       var pages = [];

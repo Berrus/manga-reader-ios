@@ -28,7 +28,7 @@ private struct MergedEditionsView: View {
                 } label: {
                     VStack(alignment: .leading) {
                         Text(member.title)
-                        Text("\(member.sourceID ?? "Imported files") · \(member.unreadCount) unread")
+                        Text("\(SourceRegistry.displayName(for: member.sourceID)) · \(member.unreadCount) unread")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -70,7 +70,7 @@ struct MergeEntriesView: View {
                     })) {
                         VStack(alignment: .leading) {
                             Text(entry.title)
-                            Text(entry.sourceID ?? "Imported files").font(.caption).foregroundStyle(.secondary)
+                            Text(SourceRegistry.displayName(for: entry.sourceID)).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }

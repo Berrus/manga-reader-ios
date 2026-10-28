@@ -328,72 +328,152 @@ struct SourceMangaView: View {
     @State private var isLoading = true
     @State private var error: String?
 
+    @AppStorage("chapterSortDescending") private var chapterSortDescending = false
+    @State private var startChapter: ChapterSummary?
+
+    private var coverAddress: URL? { (details?.coverURL ?? manga.coverURL).flatMap(URL.init(string:)) }
+    private var allNumbered: Bool { !chapters.isEmpty && chapters.allSatisfy { $0.number != nil } }
+    /// Numbered chapters are ordered by number; otherwise the source's own order is kept, because it isn't known.
+    private var ordered: [ChapterSummary] {
+        let base = allNumbered ? chapters.sorted { ($0.number ?? 0) < ($1.number ?? 0) } : chapters
+        return chapterSortDescending && allNumbered ? Array(base.reversed()) : base
+    }
+    private var firstChapter: ChapterSummary? { allNumbered ? chapters.min { ($0.number ?? 0) < ($1.number ?? 0) } : nil }
+
     var body: some View {
         List {
-            Section {
-                HStack(alignment: .top, spacing: 14) {
-                    RemoteImage(url: (details?.coverURL ?? manga.coverURL).flatMap(URL.init(string:)), headers: source.imageHeaders, policy: source.accessPolicy)
-                        .frame(width: 90, height: 135).clipped().clipShape(RoundedRectangle(cornerRadius: 8))
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(details?.title ?? manga.title).font(.headline)
-                        Text(source.name).font(.subheadline).foregroundStyle(.secondary)
-                        if let author = details?.author { Text(author).font(.subheadline).foregroundStyle(.secondary) }
-                    }
-                }
-                if let summary = details?.summary, !summary.isEmpty {
-                    Text(summary).font(.subheadline).lineLimit(showFullSummary ? nil : 4)
-                    Button(showFullSummary ? "Show less" : "Read more") { showFullSummary.toggle() }
-                }
-            }
+            header
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             if let error {
                 Section { Text(error).foregroundStyle(.red) }
             }
             if !similar.isEmpty {
                 Section {
-                    ForEach(similar) { item in
-                        NavigationLink {
-                            SourceMangaView(source: source, manga: item)
-                        } label: {
-                            HStack(spacing: 12) {
-                                RemoteImage(url: item.coverURL.flatMap(URL.init(string:)),
-                                            headers: source.imageHeaders, policy: source.accessPolicy)
-                                    .frame(width: 36, height: 52)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                                Text(item.title).lineLimit(2)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(alignment: .top, spacing: 12) {
+                            ForEach(similar) { item in
+                                NavigationLink {
+                                    SourceMangaView(source: source, manga: item)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        RemoteImage(url: item.coverURL.flatMap(URL.init(string:)),
+                                                    headers: source.imageHeaders, policy: source.accessPolicy)
+                                            .frame(width: 96, height: 144)
+                                            .clipShape(RoundedRectangle(cornerRadius: Theme.coverRadius, style: .continuous))
+                                        Text(item.title).font(.caption).lineLimit(2).frame(width: 96, alignment: .leading)
+                                    }
+                                }.buttonStyle(.plain)
                             }
-                        }
+                        }.padding(.horizontal, 16).padding(.vertical, 4)
                     }
+                    .listRowInsets(EdgeInsets())
                 } header: {
                     Text("Similar titles")
                 } footer: {
                     Text("Suggested by \(source.name). Only this title's id is sent to ask for them.")
                 }
             }
-            Section("Chapters") {
-                ForEach(chapters) { chapter in
+            Section {
+                ForEach(ordered) { chapter in
                     NavigationLink {
                         RemoteReaderView(source: source, chapter: chapter)
                     } label: {
-                        Text(chapter.name)
+                        HStack(spacing: 12) {
+                            if let number = chapter.number {
+                                Text(Self.format(number))
+                                    .font(.caption.weight(.semibold).monospacedDigit())
+                                    .frame(minWidth: 40)
+                                    .padding(.vertical, 6)
+                                    .background(Theme.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                            Text(chapter.name).lineLimit(2)
+                        }
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("\(chapters.count) chapters")
+                    Spacer()
+                    if allNumbered {
+                        Picker("Chapter order", selection: $chapterSortDescending) {
+                            Text("Oldest first").tag(false)
+                            Text("Newest first").tag(true)
+                        }.pickerStyle(.menu).textCase(nil)
                     }
                 }
             }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle(manga.title)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if !existing.isEmpty {
-                    Label("In library", systemImage: "checkmark.circle.fill")
-                } else {
-                    Button("Add to library", systemImage: "plus") { addToLibrary() }
-                        .disabled(isLoading || chapters.isEmpty)
-                }
-            }
-        }
+        .navigationDestination(item: $startChapter) { RemoteReaderView(source: source, chapter: $0) }
         .overlay { if isLoading { ProgressView() } }
         .task { await load() }
         .task { similar = (try? await source.related(to: manga)) ?? [] }
+    }
+
+    private static func format(_ number: Double) -> String {
+        number == number.rounded() ? String(Int(number)) : String(number)
+    }
+
+    /// Blurred cover backdrop with the cover, title, source, and the two main actions.
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .bottom, spacing: 16) {
+                RemoteImage(url: coverAddress, headers: source.imageHeaders, policy: source.accessPolicy)
+                    .frame(width: 120, height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.coverRadius, style: .continuous))
+                    .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(details?.title ?? manga.title).font(.title3.bold()).lineLimit(4)
+                    if let author = details?.author, !author.isEmpty {
+                        Text(author).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
+                    }
+                    HStack(spacing: 6) {
+                        Pill(text: source.name, systemImage: "globe")
+                        if !chapters.isEmpty { Pill(text: "\(chapters.count) chapters", systemImage: "books.vertical") }
+                    }
+                }
+            }
+            HStack(spacing: 10) {
+                if let first = firstChapter {
+                    Button { startChapter = first } label: {
+                        Label("Start reading", systemImage: "play.fill").frame(maxWidth: .infinity)
+                    }.buttonStyle(.borderedProminent)
+                }
+                if existing.isEmpty {
+                    Button { addToLibrary() } label: {
+                        Label("Add to library", systemImage: "plus").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isLoading || chapters.isEmpty)
+                } else {
+                    Label("In library", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity).foregroundStyle(Theme.accent)
+                }
+            }
+            .controlSize(.large)
+            if let summary = details?.summary, !summary.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(summary).font(.subheadline).lineLimit(showFullSummary ? nil : 3)
+                    Button(showFullSummary ? "Show less" : "More") { withAnimation { showFullSummary.toggle() } }
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            ZStack {
+                RemoteImage(url: coverAddress, headers: source.imageHeaders, policy: source.accessPolicy)
+                    .blur(radius: 30).scaleEffect(1.3)
+                Rectangle().fill(.regularMaterial)
+            }.clipped()
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cardRadius + 6, style: .continuous))
+        .padding(.horizontal, 16).padding(.vertical, 8)
     }
 
         /// Saves the series and its chapter list so it can be downloaded and read offline.
@@ -456,10 +536,7 @@ struct RemoteReaderView: View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let error {
-                VStack(spacing: 12) {
-                    Text(error).foregroundStyle(.white)
-                    Button("Retry") { reloadID = UUID() }.buttonStyle(.borderedProminent)
-                }.padding()
+                ReaderErrorView(message: error) { reloadID = UUID() }
             } else if isLoading {
                 ProgressView().tint(.white)
             } else {

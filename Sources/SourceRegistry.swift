@@ -49,4 +49,18 @@ enum SourceRegistry {
         }
         return nil
     }
+
+    /// Name to show for a saved series' source id. Falls back to a tidied id when the source isn't available.
+    static func displayName(for sourceID: String?) -> String {
+        guard let sourceID else { return "Imported files" }
+        return source(id: sourceID)?.name ?? fallbackName(sourceID)
+    }
+
+    nonisolated static func fallbackName(_ id: String) -> String {
+        if id == "mangadex" { return "MangaDex" }
+        for prefix in ["komga.", "opds.", "suwayomi."] where id.hasPrefix(prefix) { return "Personal server" }
+        var name = id
+        for prefix in ["pb.", "js."] where name.hasPrefix(prefix) { name.removeFirst(prefix.count) }
+        return name.replacingOccurrences(of: "([a-z])([A-Z])", with: "$1 $2", options: .regularExpression)
+    }
 }

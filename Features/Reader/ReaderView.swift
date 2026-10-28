@@ -122,7 +122,7 @@ private struct ReaderContent: View {
 
             if let error = vm.loadError {
 
-                Text(error).foregroundStyle(.white)
+                ReaderErrorView(message: error)
 
             } else {
 
