@@ -32,6 +32,23 @@ final class PaperbackTests: XCTestCase {
     })({});
     """
 
+    func testDiscoveryReturnsBookSections() async throws {
+        let script = """
+        var source = {Fake: {
+          async getDiscoverSections() {
+            return [{id: "popular", title: "Popular", type: "featured"}];
+          },
+          async getDiscoverSectionItems(section) {
+            return {items: [{mangaId: "m1", title: "Book", imageUrl: "https://cdn.example/cover.jpg", subtitle: "Chapter 1"}]};
+          }
+        }};
+        """
+        let sections = try await source(script).discover()
+        XCTAssertEqual(sections.first?.title, "Popular")
+        XCTAssertEqual(sections.first?.items.first?.mangaId, "m1")
+        XCTAssertEqual(sections.first?.items.first?.subtitle, "Chapter 1")
+    }
+
     func testSearchDecodesEntitiesAndSkipsRowsWithoutId() async throws {
         let rows = try await source(bundle).search(query: "x", page: 1)
         XCTAssertEqual(rows.map(\.id), ["m1"])
