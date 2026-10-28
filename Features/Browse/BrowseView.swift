@@ -449,12 +449,17 @@ struct RemoteReaderView: View {
     @State private var isLoading = true
     @State private var error: String?
     @Environment(\.displayScale) private var displayScale
+    @State private var showControls = true
+    @State private var reloadID = UUID()
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
             if let error {
-                Text(error).foregroundStyle(.white).padding()
+                VStack(spacing: 12) {
+                    Text(error).foregroundStyle(.white)
+                    Button("Retry") { reloadID = UUID() }.buttonStyle(.borderedProminent)
+                }.padding()
             } else if isLoading {
                 ProgressView().tint(.white)
             } else {
@@ -465,14 +470,20 @@ struct RemoteReaderView: View {
                         }
                     }
                 }
+                .simultaneousGesture(TapGesture().onEnded { withAnimation { showControls.toggle() } })
             }
         }
         .navigationTitle(chapter.name)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .toolbar(showControls ? .visible : .hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .statusBarHidden(!showControls)
+        .task(id: reloadID) { await load() }
     }
 
     private func load() async {
+        isLoading = true
+        error = nil
         defer { isLoading = false }
         do { pages = try await source.pages(for: chapter) }
         catch { self.error = error.localizedDescription }
@@ -485,6 +496,7 @@ private struct RemotePageView: View {
     let policy: SourceAccessPolicy
     @State private var image: UIImage?
     @State private var failed = false
+    @State private var retryID = UUID()
 
     var body: some View {
         Group {
@@ -495,14 +507,15 @@ private struct RemotePageView: View {
                     .frame(maxWidth: ReaderViewModel.webtoonMaxWidth)
                     .frame(maxWidth: .infinity)
             } else if failed {
-                Label("Couldn't load page", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.white)
-                    .frame(height: 200)
+                VStack {
+                    Label("Couldn't load page", systemImage: "exclamationmark.triangle").foregroundStyle(.white)
+                    Button("Retry") { failed = false; retryID = UUID() }.buttonStyle(.borderedProminent)
+                }.frame(height: 200)
             } else {
                 Color.black.frame(height: 500).overlay(ProgressView().tint(.white))
             }
         }
-        .task(id: page.url) { await load() }
+        .task(id: "\(page.url)-\(retryID)") { await load() }
     }
 
     private func load() async {
