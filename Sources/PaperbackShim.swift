@@ -132,7 +132,23 @@ enum PaperbackShim {
     if (!instance) throw new Error("Extension " + id + " not found.");
     if (!initialised) { initialised = true; if (instance.initialise) await instance.initialise(); }
     var result;
-    if (method === "search") {
+    if (method === "discover") {
+      if (!instance.getDiscoverSections || !instance.getDiscoverSectionItems) return JSON.stringify([]);
+      var sections = await instance.getDiscoverSections();
+      var groups = [];
+      for (var section of (sections || []).slice(0, 12)) {
+        try {
+          var page = await instance.getDiscoverSectionItems(section, undefined);
+          var items = (page && page.items || []).filter(function (item) {
+            return item && item.mangaId && item.title;
+          }).slice(0, 30).map(function (item) {
+            return { mangaId: item.mangaId, title: item.title, imageUrl: item.imageUrl, subtitle: item.subtitle };
+          });
+          if (items.length) groups.push({ id: String(section.id), title: String(section.title || ""), items: items });
+        } catch (error) { /* Other sections remain available. */ }
+      }
+      result = groups;
+    } else if (method === "search") {
       result = await instance.getSearchResults({ title: args.query, filters: [] }, args.metadata || undefined);
     } else if (method === "details") {
       result = await instance.getMangaDetails(args.mangaId);

@@ -58,6 +58,22 @@ final class PaperbackSource: Source, @unchecked Sendable {
         self.script = script
     }
 
+    struct DiscoverySection: Decodable, Identifiable {
+        let id: String
+        let title: String
+        let items: [Item]
+        struct Item: Decodable {
+            let mangaId: String
+            let title: String
+            let imageUrl: String?
+            let subtitle: String?
+        }
+    }
+
+    func discover() async throws -> [DiscoverySection] {
+        try await call("discover", [:])
+    }
+
     // MARK: Source
 
     func search(query: String, page: Int) async throws -> [MangaSummary] {

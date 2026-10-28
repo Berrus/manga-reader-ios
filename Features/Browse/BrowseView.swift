@@ -103,6 +103,10 @@ struct SourceSearchView: View {
     @State private var canLoadMore = false
     @State private var loadingMore = false
     @State private var moreError: String?
+    #if !APP_STORE
+    @State private var discovery: [PaperbackSource.DiscoverySection] = []
+    @State private var discoveryError: String?
+    #endif
 
     var body: some View {
         ScrollView {
@@ -110,6 +114,41 @@ struct SourceSearchView: View {
                 if !savedSearches.searches(for: source.id).isEmpty {
                     savedSearchChips
                 }
+                #if !APP_STORE
+                if submittedQuery.isEmpty {
+                    ForEach(discovery) { section in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(section.title).font(.headline)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                LazyHStack(alignment: .top, spacing: 12) {
+                                    ForEach(section.items, id: \.mangaId) { item in
+                                        let manga = MangaSummary(id: item.mangaId, title: item.title, coverURL: item.imageUrl)
+                                        NavigationLink {
+                                            SourceMangaView(source: source, manga: manga)
+                                        } label: {
+                                            VStack(alignment: .leading, spacing: 5) {
+                                                RemoteImage(url: item.imageUrl.flatMap(URL.init(string:)),
+                                                            headers: source.imageHeaders, policy: source.accessPolicy)
+                                                    .frame(width: 120, height: 180)
+                                                    .clipped().clipShape(RoundedRectangle(cornerRadius: 8))
+                                                Text(item.title).font(.subheadline).lineLimit(2)
+                                                    .foregroundStyle(.primary)
+                                                if let subtitle = item.subtitle {
+                                                    Text(subtitle).font(.caption).lineLimit(1)
+                                                        .foregroundStyle(.secondary)
+                                                }
+                                            }.frame(width: 120, alignment: .leading)
+                                        }.buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if let discoveryError {
+                        Text(discoveryError).font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                #endif
                 if !results.isEmpty {
                     HStack {
                         Text("Results")
@@ -182,6 +221,13 @@ struct SourceSearchView: View {
             }
         }
         .task(id: searchRevision) { await search(submittedQuery, revision: searchRevision) }
+        #if !APP_STORE
+        .task {
+            guard let paperback = source as? PaperbackSource else { return }
+            do { discovery = try await paperback.discover() }
+            catch { discoveryError = "Discovery unavailable: " + error.localizedDescription }
+        }
+        #endif
     }
 
     private var savedSearchChips: some View {
