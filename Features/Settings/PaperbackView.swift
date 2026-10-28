@@ -18,9 +18,14 @@ struct PaperbackView: View {
             Section("Installed") {
                 if store.installed.isEmpty { Text("None installed").foregroundStyle(.secondary) }
                 ForEach(store.installed) { info in
-                    VStack(alignment: .leading) {
-                        Text(info.name)
-                        Text("Version \(info.version)").font(.caption).foregroundStyle(.secondary)
+                    Toggle(isOn: Binding(
+                        get: { store.isEnabled(info) },
+                        set: { store.setEnabled($0, for: info) }
+                    )) {
+                        VStack(alignment: .leading) {
+                            Text(info.name)
+                            Text("Version \(info.version)").font(.caption).foregroundStyle(.secondary)
+                        }
                     }.swipeActions { Button("Remove", role: .destructive) { store.remove(info) } }
                 }
             }

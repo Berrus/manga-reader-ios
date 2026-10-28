@@ -11,6 +11,7 @@ struct MangaDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.horizontalSizeClass) private var sizeClass
 
+    @AppStorage("chapterSortDescending") private var chapterSortDescending = false
     @State private var openChapter: Chapter?
     @State private var streamChapter: Chapter?
 
@@ -38,6 +39,13 @@ struct MangaDetailView: View {
                 NavigationLink("Library suggestions") { LibraryRecommendationsView(manga: manga) }
             }
 
+            Section {
+                Picker("Chapter order", selection: $chapterSortDescending) {
+                    Text("Oldest first").tag(false)
+                    Text("Newest first").tag(true)
+                }
+            }
+
             Section("Chapters") {
 
                 if manga.chapters.isEmpty {
@@ -46,7 +54,7 @@ struct MangaDetailView: View {
 
                 }
 
-                ForEach(manga.sortedChapters) { chapter in
+                ForEach(chapterSortDescending ? Array(manga.sortedChapters.reversed()) : manga.sortedChapters) { chapter in
 
                     Button { open(chapter) } label: { ChapterRow(chapter: chapter) }
 
