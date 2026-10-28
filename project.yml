@@ -7,10 +7,6 @@ configs:
   Debug: debug
   Release: release
   AppStore: release
-settings:
-  configs:
-    AppStore:
-      SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
 packages:
   CZlib:
     path: Vendor/CZlib
