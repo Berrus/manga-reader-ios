@@ -6,6 +6,9 @@ struct PaperbackView: View {
     @Bindable private var store = PaperbackStore.shared
     @State private var address = ""
     @State private var message: String?
+    @State private var showExplanation = false
+    @State private var pendingRemoval: PaperbackExtensionInfo?
+    @State private var search = ""
 
     var body: some View {
         Form {
@@ -13,11 +16,17 @@ struct PaperbackView: View {
                 Toggle("Enable Paperback extensions", isOn: $store.enabled)
                     .onChange(of: store.enabled) { _, _ in store.persistEnabled() }
             } footer: {
-                Text("Extensions are third-party JavaScript. They can contact any public HTTPS website to load comics, but cannot read your files, library or accounts. Install only repositories you trust. Settings screens, login and discover pages of extensions are not supported. No repositories are included.")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Extensions run third-party JavaScript and can contact public HTTPS sites. Install only repositories you trust.")
+                    Button(showExplanation ? "Show less" : "Learn more") { showExplanation.toggle() }
+                    if showExplanation {
+                        Text("Extensions cannot read your files, library or accounts. Extension settings and login are not supported. Discovery support varies by extension. No repositories are included.")
+                    }
+                }
             }
             Section("Installed") {
                 if store.installed.isEmpty { Text("None installed").foregroundStyle(.secondary) }
-                ForEach(store.installed) { info in
+                ForEach(store.installed.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }) { info in
                     Toggle(isOn: Binding(
                         get: { store.isEnabled(info) },
                         set: { store.setEnabled($0, for: info) }
@@ -26,24 +35,38 @@ struct PaperbackView: View {
                             Text(info.name)
                             Text("Version \(info.version)").font(.caption).foregroundStyle(.secondary)
                         }
-                    }.swipeActions { Button("Remove", role: .destructive) { store.remove(info) } }
+                    }.swipeActions { Button("Remove", role: .destructive) { pendingRemoval = info } }
                 }
             }
             if store.enabled {
                 Section("Repositories") {
                     ForEach(store.repositories, id: \.self) { base in
-                        NavigationLink(base) { PaperbackRepositoryView(base: base) }
+                        NavigationLink {
+                            PaperbackRepositoryView(base: base)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(URL(string: base)?.host ?? "Repository")
+                                Text(base).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                            }
+                        }
                             .swipeActions { Button("Remove", role: .destructive) { store.removeRepository(base) } }
                     }
                     TextField("https://example.github.io/extensions/0.9/stable", text: $address)
                         .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                     Button("Add repository", systemImage: "plus") {
-                        do { try store.addRepository(address); address = ""; message = nil }
+                        do { try store.addRepository(address); address = ""; message = "Repository added or already present." }
                         catch { message = error.localizedDescription }
                     }.disabled(address.isEmpty)
                 }
             }
             if let message { Section { Text(message).font(.footnote) } }
+        }
+        .searchable(text: $search, prompt: "Search installed extensions")
+        .confirmationDialog("Remove extension?", isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }), titleVisibility: .visible) {
+            Button("Remove extension", role: .destructive) { if let info = pendingRemoval { store.remove(info) }; pendingRemoval = nil }
+            Button("Cancel", role: .cancel) { pendingRemoval = nil }
+        } message: {
+            Text("Library entries and downloads remain, but this source will be unavailable until the extension is reinstalled.")
         }
         .navigationTitle("Paperback extensions")
     }
