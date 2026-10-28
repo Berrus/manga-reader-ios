@@ -18,7 +18,7 @@ final class AutoDownloadPolicyTests: XCTestCase {
     private func series(_ context: ModelContext, count: Int = 8, read: Int = 0,
                         downloaded: Set<Int> = [], remote: Bool = true) -> Manga {
         let manga = Manga(title: "Series", coverData: nil)
-        if remote { manga.sourceID = "mangadex"; manga.remoteID = "abc" }
+        if remote { manga.sourceID = "example-source"; manga.remoteID = "abc" }
         context.insert(manga)
         for number in 1...count {
             let chapter = Chapter(name: "Ch \(number)", number: Double(number), fileName: "", pageCount: 0)
