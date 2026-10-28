@@ -47,9 +47,9 @@ struct BrowseView: View {
                     }
                 }
                 #if !APP_STORE
-                if DistributionPolicy.allowsScriptedSources && paperbackStore.enabled && !paperbackStore.installed.isEmpty {
+                if DistributionPolicy.allowsScriptedSources && paperbackStore.enabled && paperbackStore.installed.contains(where: { paperbackStore.isEnabled($0) }) {
                     Section("Paperback extensions") {
-                        ForEach(paperbackStore.installed) { info in
+                        ForEach(paperbackStore.installed.filter { paperbackStore.isEnabled($0) }) { info in
                             if let source = paperbackStore.source(for: info) {
                                 row(source, subtitle: "v\(info.version)")
                             } else {
