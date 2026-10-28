@@ -15,7 +15,7 @@ Legend: 🟢 implemented · 🟠 partial or needs verification · 🔴 not imple
 | **Themes** | 🟠 Partial | Accent palettes and a cover-derived **reader background** exist. Komikku's broader cover-based entry and reader theming is not established as equivalent. |
 | **Autoscroll and cache settings** | 🟢 Implemented | Webtoon autoscroll, preload and memory-cache controls. |
 | **Saved searches and feed** | 🟠 Partial | Saved searches and a feed based on saved queries exist. This is not necessarily the same as Komikku's source-wide feed. |
-| **Recommendations** | 🟠 Partial | Folio suggests titles **already in your library**. MangaDex also provides related works and similar genres ("Similar titles" on its series page). Other sources offer none. |
+| **Recommendations** | 🟠 Partial | Folio suggests titles **already in your library**. Remote recommendations depend on source support. |
 | **Merge editions and migrate sources** | 🟠 Code present | Merge/unmerge and migration with a mapping preview are present. Behaviour on Apple platforms needs verification. |
 | **Backup and restore** | 🟢 Implemented | Folio backup/restore and Komikku backup import. Compatibility with a specific real backup still needs testing. |
 | **Tracking** | 🟠 Code present; needs real accounts | AniList, MyAnimeList (PKCE sign-in, token refresh) and Kitsu (email/password exchanged for tokens), all with forward-only sync. AniList and MyAnimeList need a client ID. None has been tried against a real account. |
@@ -36,7 +36,7 @@ Legend: 🟢 implemented · 🟠 partial or needs verification · 🔴 not imple
 
 - [ ] Reflowable (text) EPUB reader, and Kavita's native REST API (OPDS works).
 - [ ] Higher-resolution decoding for zoomed webtoon pages.
-- [ ] Recommendations from sources other than MangaDex.
+- [ ] Recommendations from additional sources.
 - [ ] Broader cover-based theming of entries and the reader.
 - [ ] Native macOS target (assessed, see [MACOS_NATIVE.md](MACOS_NATIVE.md)).
 - [ ] Widget and Shortcuts actions; localization catalogs.

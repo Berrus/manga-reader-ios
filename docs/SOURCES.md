@@ -37,7 +37,7 @@ Enable custom sources, then open Settings → Installed sources → Source repos
 {"version":1,"sources":[{"id":"example.source","name":"Example","version":"1","hosts":["example.com"],"endpoints":{"search":{"url":"https://example.com/search?q={query}","fields":{"id":"id","title":"name"}},"details":{"url":"https://example.com/books/{id}","fields":{}},"chapters":{"url":"https://example.com/books/{id}/chapters","fields":{"id":"id","name":"name"}},"pages":{"url":"https://example.com/chapters/{id}/pages","fields":{"url":"url"}}}}]}
 ```
 
-Repositories are limited to 20 addresses, 1 MB per catalog and 200 entries. Refresh explicitly reloads the selected catalog; install/update asks for confirmation and shows allowed domains. Removing a repository does not remove installed sources. APK, Paperback and Aidoku extensions are not compatible with this format. The App Store configuration also provides opt-in declarative sources; built-in MangaDex browsing remains excluded.
+Repositories are limited to 20 addresses, 1 MB per catalog and 200 entries. Refresh explicitly reloads the selected catalog; install/update asks for confirmation and shows allowed domains. Removing a repository does not remove installed sources. APK, Paperback and Aidoku extensions are not compatible with this format. The App Store configuration also provides opt-in declarative sources; the built-in MangaDex API provider has been removed.
 
 ## Replacing installed sources
 

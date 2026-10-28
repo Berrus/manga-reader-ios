@@ -18,7 +18,7 @@ The FolioReader-AppStore scheme now uses the same source features as the standar
 
 - Replace com.example.FolioReader with the registered identifier; select the signing team and distribution provisioning.
 - Configure an approved AniList API client. Confirm its service terms and redirect setup.
-- Confirm permission for any public content service or bundled catalog. Review the existing MangaDex integration separately. An API being public is not a content license.
+- Confirm permission for any public content service or bundled catalog. An API being public is not a content license.
 - Publish a real privacy-policy URL and support URL under the owner's control. Determine disclosures for requests made to third-party sources and AniList.
 - Use only owned/licensed sample comics, covers and screenshots.
 - Complete the age-rating questionnaire accurately. No adult-content-specific integrations are included.

@@ -66,19 +66,10 @@ final class BackupTests: XCTestCase {
                        "http://server:25600/api/v1/books/b/pages/2?convert=jpeg")
     }
 
-    func testMangaDexDedupesChaptersAndDropsOffSiteOnes() throws {
-        let json = """
-        [{"id":"a","attributes":{"chapter":"1","title":"Start","pages":10,"externalUrl":null}},
-         {"id":"b","attributes":{"chapter":"1","title":null,"pages":10,"externalUrl":null}},
-         {"id":"c","attributes":{"chapter":"2","title":null,"pages":0,"externalUrl":null}},
-         {"id":"d","attributes":{"chapter":"3","title":null,"pages":5,"externalUrl":"https://example.com"}},
-         {"id":"e","attributes":{"chapter":"4","title":null,"pages":5,"externalUrl":null}}]
-        """
-        let items = try JSONDecoder().decode([MangaDexSource.ChapterItem].self, from: Data(json.utf8))
-        let chapters = MangaDexSource.chapterList(from: items)
-        XCTAssertEqual(chapters.map(\.id), ["a", "e"])
-        XCTAssertEqual(chapters.first?.name, "Ch. 1 – Start")
+    func testRemovedMangaDexProviderIsUnavailable() {
+        XCTAssertNil(SourceRegistry.source(id: "mangadex"))
     }
+
     func testKomikkuGzipBackupRestoresMatchedProgressAndCategories() throws {
         let fixture = "H4sIAAAAAAACA+PSlOINTswtyElVKE4tykwtbmIUEeJ0zkgsKEktUjBUYDRg9WVgaLDvYGQX4uViD0pNTMnMSxdglGAHAAN9YCE6AAAA"
         let preview = try KomikkuBackupImporter.decode(Data(base64Encoded: fixture)!)

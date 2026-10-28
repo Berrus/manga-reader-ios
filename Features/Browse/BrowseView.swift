@@ -3,6 +3,9 @@ import SwiftData
 
 struct BrowseView: View {
     @Environment(SourceStore.self) private var store
+    #if !APP_STORE
+    @State private var paperbackStore = PaperbackStore.shared
+    #endif
     private var servers: ServerStore { .shared }
     private var komgaServers: [ServerConfig] { servers.servers.filter { $0.kind != .suwayomi } }
     private var suwayomiServers: [ServerConfig] {
@@ -12,17 +15,6 @@ struct BrowseView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !DistributionPolicy.allowsPublicSources {
-                    Section { Text("Import your comics in Library, or add a personal Komga server in Settings.") }
-                }
-                if DistributionPolicy.allowsPublicSources {
-                Section {
-                    row(MangaDexSource(), subtitle: "Official API · Data from MangaDex")
-                } header: {
-                    Text("Online")
-                }
-                }
-
                 if !komgaServers.isEmpty {
                     Section("Your servers") {
                         ForEach(komgaServers) { server in
@@ -54,6 +46,20 @@ struct BrowseView: View {
                         Text("Content comes from the extensions installed on your own server.")
                     }
                 }
+                #if !APP_STORE
+                if DistributionPolicy.allowsScriptedSources && paperbackStore.enabled && !paperbackStore.installed.isEmpty {
+                    Section("Paperback extensions") {
+                        ForEach(paperbackStore.installed) { info in
+                            if let source = paperbackStore.source(for: info) {
+                                row(source, subtitle: "v\(info.version)")
+                            } else {
+                                Label("\(info.name) failed to load", systemImage: "exclamationmark.triangle")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                #endif
                 if DistributionPolicy.allowsCustomSources && store.enabled && !store.manifests.isEmpty {
                     Section("Custom sources") {
                         ForEach(store.manifests) { manifest in
