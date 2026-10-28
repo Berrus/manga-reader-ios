@@ -35,8 +35,8 @@ struct MangaReaderApp: App {
                     .tabItem { Label("History", systemImage: "clock") }
                 BrowseView()
                     .tabItem { Label("Browse", systemImage: "globe") }
-                FeedView()
-                    .tabItem { Label("Feed", systemImage: "rectangle.stack") }
+                UpdatesTab()
+                    .tabItem { Label("Updates", systemImage: "arrow.triangle.2.circlepath") }
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "gearshape") }
             }

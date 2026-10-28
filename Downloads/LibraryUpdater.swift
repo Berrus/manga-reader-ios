@@ -66,7 +66,7 @@ final class LibraryUpdater {
                 break
             } catch {
                 summary.failed += 1
-                lastErrors.append(UpdateIssue(title: manga.title, message: error.localizedDescription))
+                lastErrors.append(UpdateIssue(title: manga.title, message: ReaderErrorView.friendly(error.localizedDescription)))
                 log.error("Update failed for \(manga.title): \(error.localizedDescription)")
             }
         }
@@ -100,7 +100,8 @@ final class LibraryUpdater {
     func refresh(_ manga: Manga) async throws -> [Chapter] {
         guard let sourceID = manga.sourceID, let remoteID = manga.remoteID,
               let source = SourceRegistry.source(id: sourceID) else { throw DownloadError.sourceUnavailable }
-        let remote = try await source.chapters(for: MangaSummary(id: remoteID, title: manga.title, coverURL: nil))
+        let summary = MangaSummary(id: remoteID, title: manga.title, coverURL: nil)
+        let remote = try await Self.retrying { try await source.chapters(for: summary) }
         try Task.checkCancellation()
         var known = Set(manga.chapters.compactMap(\.remoteID))
         var added: [Chapter] = []
@@ -115,6 +116,29 @@ final class LibraryUpdater {
         }
         if !added.isEmpty { manga.lastUpdatedAt = .now }
         return added
+    }
+
+    /// Network hiccups (a dropped TLS handshake, a timeout) often pass on a second try, so those are retried
+    /// twice with a short pause before the series is reported as failed.
+    nonisolated static func retrying<T>(_ work: () async throws -> T) async throws -> T {
+        var attempt = 0
+        while true {
+            do { return try await work() }
+            catch where isTransient(error) && attempt < 2 {
+                attempt += 1
+                try await Task.sleep(for: .seconds(2 * attempt))
+            }
+        }
+    }
+
+    nonisolated static func isTransient(_ error: Error) -> Bool {
+        if let url = error as? URLError {
+            return [.secureConnectionFailed, .timedOut, .networkConnectionLost, .cannotConnectToHost,
+                    .cannotFindHost, .dnsLookupFailed].contains(url.code)
+        }
+        // Extensions report network failures as text, so the wording is all that is available.
+        let text = error.localizedDescription.lowercased()
+        return ["tls error", "secure connection", "timed out", "connection was lost", "could not connect"].contains { text.contains($0) }
     }
 
     /// Frees space used by chapters you've already read.

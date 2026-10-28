@@ -1,13 +1,13 @@
 import SwiftUI
 
 /// An opt-in feed of the user's saved queries, not an unlicensed bundled catalog.
+/// Shown inside the Updates tab, which provides the navigation stack.
 struct FeedView: View {
     @State private var saved = SavedSearchStore.shared
     @State private var vm = FeedViewModel()
     @State private var didLoad = false
     var body: some View {
-        NavigationStack {
-            List {
+        List {
                 if saved.entries.isEmpty {
                     ContentUnavailableView("Build your feed", systemImage: "rectangle.stack",
                         description: Text("Save a search in Browse to add it here. Your eight most recent saved searches appear in the feed."))
@@ -46,13 +46,11 @@ struct FeedView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Feed")
             .task(id: didLoad ? saved.entries.map(\.id) : []) {
                 if didLoad { await vm.load(saved.entries) }
             }
             .refreshable {
                 if didLoad { await vm.load(saved.entries) } else { didLoad = true }
             }
-        }
     }
 }

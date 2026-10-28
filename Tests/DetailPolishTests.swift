@@ -32,3 +32,20 @@ final class DetailPolishTests: XCTestCase {
     }
     #endif
 }
+
+final class UpdateRetryTests: XCTestCase {
+    func testTransientNetworkErrorsAreRetriedButHTTPErrorsAreNot() {
+        XCTAssertTrue(LibraryUpdater.isTransient(URLError(.secureConnectionFailed)))
+        XCTAssertTrue(LibraryUpdater.isTransient(URLError(.timedOut)))
+        XCTAssertFalse(LibraryUpdater.isTransient(URLError(.badURL)))
+        XCTAssertFalse(LibraryUpdater.isTransient(TransportError.http(404)))
+        #if !APP_STORE
+        XCTAssertTrue(LibraryUpdater.isTransient(PaperbackError.extensionFailed("A TLS error caused the secure connection to fail.")))
+        #endif
+    }
+
+    func testTLSFailuresReadClearly() {
+        XCTAssertTrue(ReaderErrorView.friendly("Extension error: A TLS error caused the secure connection to fail.").contains("secure connection"))
+        XCTAssertTrue(ReaderErrorView.friendly("The request timed out.").contains("too long"))
+    }
+}

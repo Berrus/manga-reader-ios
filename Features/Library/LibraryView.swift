@@ -131,9 +131,6 @@ struct LibraryView: View {
                                                  total: Double(max(updater.totalCount, 1)))
                                 }
                             }
-                            NavigationLink { UpdatesView() } label: {
-                                Label("Updates", systemImage: "arrow.triangle.2.circlepath")
-                            }
                             if !isSelecting && !hasFilters && selectedCategory == nil && search.isEmpty && !continueReading.isEmpty {
                                 shelf
                             }

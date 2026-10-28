@@ -22,6 +22,14 @@ struct ReaderErrorView: View {
     nonisolated static func friendly(_ message: String) -> String {
         var text = message
         for prefix in ["Extension error: ", "Script error: "] where text.hasPrefix(prefix) { text.removeFirst(prefix.count) }
+        let lower = text.lowercased()
+        if lower.contains("tls error") || lower.contains("secure connection") {
+            return "Couldn't make a secure connection to the site. It may be down or blocking the app. Try again later."
+        }
+        if lower.contains("timed out") { return "The site took too long to answer. Try again later." }
+        if lower.contains("connection was lost") || lower.contains("not connected to the internet") || lower.contains("offline") {
+            return "The connection dropped. Check your internet connection and try again."
+        }
         guard let range = text.range(of: #"HTTP (\d{3})"#, options: .regularExpression),
               let code = Int(text[range].dropFirst(5)) else { return text }
         switch code {

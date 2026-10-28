@@ -119,14 +119,13 @@ final class MangaReaderUITests: XCTestCase {
 
     func testFeedAndUpdatesEmptyStates() {
         let app = launch(empty: true)
-        let feed = app.buttons["Feed"].firstMatch
-        XCTAssertTrue(feed.waitForExistence(timeout: 10))
-        feed.tap()
+        let updates = app.tabBars.buttons["Updates"]
+        XCTAssertTrue(updates.waitForExistence(timeout: 10))
+        updates.tap()
+        XCTAssertTrue(app.staticTexts["No updates yet"].waitForExistence(timeout: 10))
+        app.buttons["Saved searches"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Build your feed"].waitForExistence(timeout: 10))
         screenshot("07-feed-empty")
-        app.buttons["Settings"].firstMatch.tap()
-        app.buttons["Updates"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["No updates yet"].waitForExistence(timeout: 10))
     }
 
     /// Name kept because the workflow selects it. Paperback extensions are in their own always-visible Settings
