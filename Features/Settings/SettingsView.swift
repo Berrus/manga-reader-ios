@@ -56,6 +56,9 @@ struct SettingsView: View {
                 customSourceSection
                 if store.enabled { installedSourcesSection }
             }
+            #if !APP_STORE
+            extensionsSection
+            #endif
         }
     }
     private var librarySection: some View {
@@ -123,12 +126,17 @@ struct SettingsView: View {
             Button("Add source…", systemImage: "plus") { showSourceInstaller = true }
             NavigationLink("Source repositories") { SourceRepositoriesView() }
                 .accessibilityIdentifier("sourceRepositories")
-            #if !APP_STORE
-            NavigationLink("Scripted sources") { ScriptedSourcesView() }
-            NavigationLink("Paperback extensions") { PaperbackView() }
-            #endif
         }
     }
+    #if !APP_STORE
+    /// Always visible, so extensions can be turned on without enabling declarative custom sources first.
+    private var extensionsSection: some View {
+        Section("Extensions") {
+            NavigationLink("Paperback extensions") { PaperbackView() }
+            NavigationLink("Scripted sources") { ScriptedSourcesView() }
+        }
+    }
+    #endif
     private func exportBackup() {
         do {
             exportDocument = BackupDocument(data: try BackupService.encode(BackupService.snapshot(context: context)))
