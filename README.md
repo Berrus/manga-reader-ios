@@ -94,7 +94,7 @@ UI smoke tests import original generated sample CBZs into a temporary in-memory 
 - Series page with a cover header, progress and chapter status indicators.
 - Four app icons (Indigo default, Ink, Coral, Light) chosen in Settings on iPhone and iPad; sources are in `design/`.
 - Categories (library chips, long-press to move), History tab, reader settings (background, edge-tap page turning, keep screen on).
-- Browse: MangaDex via its official API (safe/suggestive content only), your own Komga servers (Settings > Library > Servers, passwords in the Keychain), and optional custom sources.
+- Browse: your own Komga servers (Settings > Library > Servers, passwords in the Keychain), and optional custom sources.
 - Offline downloads: add a series from Browse to the library, then download chapters (swipe a chapter, or the download menu on the series page). Settings > Library > Downloads sets automatic downloads: series you're reading, selected series, or recently updated; how many chapters to keep ahead; Wi-Fi only; delete after reading. Updates are checked when you open the app (at most every 4 hours), with a best-effort iOS background refresh.
 - Backup and restore of categories, progress and tracker links (Settings > Backup).
 - Suwayomi servers you run yourself (Settings > Library > Servers): browse sources, search, add to library, read and download. See docs/SUWAYOMI.md, which also covers adding extension repositories such as Keiyoushi to your server from the app.
@@ -111,11 +111,11 @@ iPhone/iPad touch behavior, zoom versus page-swipe gestures, orientation changes
 
 The full feature checklist, including everything not implemented, is in [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
-Not built yet (from the handoff): a text EPUB reader (comic EPUBs work), Kavita's REST API (its OPDS feed works), a native macOS target (see docs/MACOS_NATIVE.md), widget and Shortcuts, localization catalogs, and the monthly source-update pipeline. iCloud sync, background downloads, OPDS, EPUB, Kitsu and MangaDex recommendations exist as code and need real devices, servers and accounts to verify. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
+Not built yet (from the handoff): a text EPUB reader (comic EPUBs work), Kavita's REST API (its OPDS feed works), a native macOS target (see docs/MACOS_NATIVE.md), widget and Shortcuts, localization catalogs, and the monthly source-update pipeline. iCloud sync, background downloads, OPDS, EPUB, Kitsu and library recommendations exist as code and need real devices, servers and accounts to verify. Custom sources use the declarative JSON endpoint format described in docs/SOURCES.md; older script definitions must be replaced.
 
 ## Content and licensing
 
-No bundled scraper lists or adult-content integrations. Optional custom sources use declarative JSON endpoint definitions. Downloaded programs are not executed; see docs/SOURCES.md. Planned sources are user-owned Komga/Kavita/OPDS servers and official MangaDex APIs, subject to current terms and review requirements.
+No bundled scraper lists or adult-content integrations. Optional custom sources use declarative JSON endpoint definitions. Downloaded programs are not executed; see docs/SOURCES.md. Planned sources are user-owned Komga/Kavita/OPDS servers and other supported servers, subject to current terms and review requirements.
 
 No license has been selected for the original project code. See NOTICE for design references. ZIPFoundation retains its own license. The generated UI-test sample artwork is original and contains no third-party manga.
 
