@@ -344,11 +344,6 @@ struct SourceMangaView: View {
                     Text(summary).font(.subheadline).lineLimit(showFullSummary ? nil : 4)
                     Button(showFullSummary ? "Show less" : "Read more") { showFullSummary.toggle() }
                 }
-                if let first = chapters.last {
-                    NavigationLink { RemoteReaderView(source: source, chapter: first) } label: {
-                        Label("Start reading", systemImage: "play.fill")
-                    }
-                }
             }
             if let error {
                 Section { Text(error).foregroundStyle(.red) }
