@@ -9,6 +9,7 @@ final class PaperbackStore {
     static let shared = PaperbackStore()
     private static let enabledKey = "paperbackEnabled", repositoriesKey = "paperbackRepositories"
     var enabled = false
+    private(set) var disabledIDs: Set<String> = []
     private(set) var repositories: [String] = []
     private(set) var installed: [PaperbackExtensionInfo] = []
     @ObservationIgnored private var cache: [String: PaperbackSource] = [:]
@@ -17,11 +18,19 @@ final class PaperbackStore {
         let defaults = UserDefaults.standard
         enabled = DistributionPolicy.allowsScriptedSources && defaults.bool(forKey: Self.enabledKey)
         repositories = defaults.stringArray(forKey: Self.repositoriesKey) ?? []
+        disabledIDs = Set(defaults.stringArray(forKey: "paperbackDisabledIDs") ?? [])
         load()
     }
     func persistEnabled() {
         UserDefaults.standard.set(enabled, forKey: Self.enabledKey)
         if !enabled { cache.removeAll() }
+    }
+
+    func isEnabled(_ info: PaperbackExtensionInfo) -> Bool { !disabledIDs.contains(info.id) }
+    func setEnabled(_ value: Bool, for info: PaperbackExtensionInfo) {
+        if value { disabledIDs.remove(info.id) } else { disabledIDs.insert(info.id) }
+        UserDefaults.standard.set(Array(disabledIDs), forKey: "paperbackDisabledIDs")
+        cache["pb." + info.id] = nil
     }
 
     private var directory: URL {
@@ -117,7 +126,7 @@ final class PaperbackStore {
     }
 
     func source(for info: PaperbackExtensionInfo) -> PaperbackSource? {
-        guard enabled, DistributionPolicy.allowsScriptedSources else { return nil }
+        guard enabled, DistributionPolicy.allowsScriptedSources, isEnabled(info) else { return nil }
         if let cached = cache["pb." + info.id] { return cached }
         let file = directory.appendingPathComponent(info.id, isDirectory: true).appendingPathComponent("index.js")
         guard let data = try? Data(contentsOf: file), let script = String(data: data, encoding: .utf8),
