@@ -155,9 +155,10 @@ enum PaperbackShim {
     } else if (method === "chapters") {
       var chapters = await instance.getChapters({ mangaId: args.mangaId, mangaInfo: { primaryTitle: args.title || "", secondaryTitles: [] } }, undefined);
       // Extensions attach the whole series to every chapter; drop it so long series stay small.
-      result = chapters.map(function (c) { return { chapterId: c.chapterId, title: c.title, chapNum: c.chapNum }; });
+      result = chapters.map(function (c) { return { chapterId: c.chapterId, title: c.title, chapNum: c.chapNum, additionalInfo: c.additionalInfo }; });
     } else if (method === "pages") {
-      var details = await instance.getChapterDetails({ chapterId: args.chapterId, sourceManga: { mangaId: args.mangaId, mangaInfo: { primaryTitle: "", secondaryTitles: [] } }, langCode: "en", chapNum: 0, volume: 0 });
+      // Some extensions build the chapter address from chapNum or additionalInfo, so both travel with the chapter.
+      var details = await instance.getChapterDetails({ chapterId: args.chapterId, sourceManga: { mangaId: args.mangaId, mangaInfo: { primaryTitle: "", secondaryTitles: [] } }, langCode: "en", title: args.title, chapNum: args.chapNum || 0, volume: 0, additionalInfo: args.additionalInfo || undefined });
       var pages = [];
       for (var i = 0; i < details.pages.length; i++) {
         var url = details.pages[i];

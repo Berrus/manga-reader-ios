@@ -105,16 +105,25 @@ final class PaperbackSource: Source, @unchecked Sendable {
             let number = row.chapNum
             let title = row.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let name = title.isEmpty ? (number.map { "Chapter \(Self.format($0))" } ?? "Chapter") : title
-            // The extension needs the series id again to open a chapter, so it travels inside the chapter id.
-            return ChapterSummary(id: manga.id + Self.separator + chapterID, name: name, number: number)
+            // The extension needs the series id (and sometimes extra fields) again to open a chapter, so they
+            // travel inside the chapter id: series, chapter, then optional JSON.
+            var id = manga.id + Self.separator + chapterID
+            if let info = row.additionalInfo, !info.isEmpty,
+               let data = try? JSONSerialization.data(withJSONObject: info, options: [.sortedKeys]) {
+                id += Self.separator + String(decoding: data, as: UTF8.self)
+            }
+            return ChapterSummary(id: id, name: name, number: number)
         }
     }
 
     func pages(for chapter: ChapterSummary) async throws -> [PageSource] {
         let parts = chapter.id.components(separatedBy: Self.separator)
         guard parts.count >= 2 else { throw PaperbackError.invalid("Unknown chapter id.") }
-        let mangaID = parts[0], chapterID = parts.dropFirst().joined(separator: Self.separator)
-        let rows: [PaperbackPage] = try await call("pages", ["mangaId": mangaID, "chapterId": chapterID])
+        let mangaID = parts[0], chapterID = parts[1]
+        var args: [String: Any] = ["mangaId": mangaID, "chapterId": chapterID, "title": chapter.name,
+                                   "chapNum": chapter.number ?? 0]
+        if parts.count >= 3, let info = try? JSONSerialization.jsonObject(with: Data(parts[2].utf8)) { args["additionalInfo"] = info }
+        let rows: [PaperbackPage] = try await call("pages", args)
         return try rows.prefix(Self.maxItems).map { row in
             guard let url = URL(string: row.url), accessPolicy.allows(url) else { throw TransportError.blocked }
             return PageSource(url: row.url, headers: row.headers?.isEmpty == false ? row.headers : nil)
@@ -156,7 +165,7 @@ final class PaperbackSource: Source, @unchecked Sendable {
         var mangaInfo: Info?
         struct Info: Decodable { var primaryTitle: String?; var thumbnailUrl: String?; var synopsis: String?; var author: String? }
     }
-    struct PaperbackChapter: Decodable { var chapterId: String?; var title: String?; var chapNum: Double? }
+    struct PaperbackChapter: Decodable { var chapterId: String?; var title: String?; var chapNum: Double?; var additionalInfo: [String: String]? }
     struct PaperbackPage: Decodable { var url: String; var headers: [String: String]? }
 }
 

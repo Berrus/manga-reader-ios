@@ -49,3 +49,24 @@ final class UpdateRetryTests: XCTestCase {
         XCTAssertTrue(ReaderErrorView.friendly("The request timed out.").contains("too long"))
     }
 }
+
+#if !APP_STORE
+final class PaperbackChapterContextTests: XCTestCase {
+    /// Some extensions (Asura Scans) build the chapter address from `chapNum` and `additionalInfo`.
+    func testChapterNumberAndExtraInfoReachTheExtension() async throws {
+        let script = """
+        var source = {Fake: {
+          async getChapters(m) { return [{chapterId: 'c9', title: '', chapNum: 142, additionalInfo: {early_access: 'true'}, sourceManga: m}]; },
+          async getChapterDetails(c) {
+            return {id: c.chapterId, mangaId: c.sourceManga.mangaId,
+                    pages: ['https://cdn.example/' + c.sourceManga.mangaId + '/' + c.chapNum + '/' + (c.additionalInfo ? c.additionalInfo.early_access : 'none') + '.jpg']};
+          }
+        }};
+        """
+        let fake = try PaperbackSource(info: PaperbackExtensionInfo(id: "Fake", name: "Fake", version: "1"), script: script)
+        let chapters = try await fake.chapters(for: MangaSummary(id: "series-x", title: "S"))
+        let pages = try await fake.pages(for: chapters[0])
+        XCTAssertEqual(pages.first?.url, "https://cdn.example/series-x/142/true.jpg")
+    }
+}
+#endif
