@@ -15,17 +15,6 @@ struct BrowseView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !DistributionPolicy.allowsPublicSources {
-                    Section { Text("Import your comics in Library, or add a personal Komga server in Settings.") }
-                }
-                if DistributionPolicy.allowsPublicSources {
-                Section {
-                    row(MangaDexSource(), subtitle: "Official API · Data from MangaDex")
-                } header: {
-                    Text("Online")
-                }
-                }
-
                 if !komgaServers.isEmpty {
                     Section("Your servers") {
                         ForEach(komgaServers) { server in
