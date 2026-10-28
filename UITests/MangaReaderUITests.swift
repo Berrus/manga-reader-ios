@@ -129,18 +129,13 @@ final class MangaReaderUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No updates yet"].waitForExistence(timeout: 10))
     }
 
+    /// Name kept because the workflow selects it. Paperback extensions are in their own always-visible Settings
+    /// section, so this no longer needs to flip the custom-sources switch (its tap position differs on iPad).
     func testAppStoreSourceBoundaries() {
         let app = launch(empty: true)
         app.buttons["Settings"].firstMatch.tap()
-        let custom = app.switches["Enable custom sources"]
-        for _ in 0..<4 where !custom.exists { app.swipeUp() }
-        XCTAssertTrue(custom.waitForExistence(timeout: 10))
-        if (custom.value as? String) == "0" {
-            custom.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
-        }
-        XCTAssertEqual(custom.value as? String, "1")
         let paperback = app.buttons["Paperback extensions"].firstMatch
-        for _ in 0..<4 where !paperback.exists { app.swipeUp() }
+        for _ in 0..<6 where !paperback.exists { app.swipeUp() }
         XCTAssertTrue(paperback.waitForExistence(timeout: 10))
         paperback.tap()
         XCTAssertTrue(app.switches["Enable Paperback extensions"].waitForExistence(timeout: 10))
