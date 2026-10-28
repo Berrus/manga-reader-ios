@@ -5,7 +5,6 @@ import Foundation
 enum SourceRegistry {
     static var available: [any Source] {
         var result: [any Source] = []
-        if DistributionPolicy.allowsPublicSources { result.append(MangaDexSource()) }
         for server in ServerStore.shared.servers {
             if let source = ServerStore.shared.source(for: server) { result.append(source) }
         }
@@ -30,7 +29,6 @@ enum SourceRegistry {
         return result.filter { seen.insert($0.id).inserted }
     }
     static func source(id: String) -> (any Source)? {
-        if DistributionPolicy.allowsPublicSources && id == "mangadex" { return MangaDexSource() }
         if id.hasPrefix("komga."), let uuid = UUID(uuidString: String(id.dropFirst("komga.".count))),
            let server = ServerStore.shared.servers.first(where: { $0.id == uuid }) {
             return ServerStore.shared.source(for: server)
